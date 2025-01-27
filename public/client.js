@@ -493,133 +493,210 @@ function step() {
     renderWorld();
 }
 
+// class Renderer {
+//     constructor() {
+//         this.serverDt = 1 / 10;
+//         this.elapsedTime = 0;
+//         this.serverAccumulator = 0;
+
+//         this.currentTime = performance.now();
+
+//         this.lastServerState = {};
+//         this.currentServerState = {};
+
+//         this.animate = this.animate.bind(this);
+//         this.animate(performance.now());
+
+//         this.frameCount = 0;
+//         this.lastFrameTime = performance.now();
+//         this.fps = 0;
+//     }
+
+//     receiveServerState(serverState) {
+//         this.lastServerState = { ...this.currentServerState };
+//         this.currentServerState = {};
+
+//         for (let id in serverState) {
+//             const newObject = serverState[id];
+//             const lastObject = this.lastServerState[id];
+
+//             // Snap to new position if the change is too large
+//             if (
+//                 lastObject &&
+//                 newObject.position &&
+//                 lastObject.position &&
+//                 (Math.abs(newObject.position.x - lastObject.position.x) > 5 || // Threshold for snapping
+//                     Math.abs(newObject.position.y - lastObject.position.y) > 5)
+//             ) {
+//                 this.lastServerState[id] = { ...newObject }; // Treat this as the new "last state"
+//             }
+
+//             this.currentServerState[id] = newObject;
+//         }
+
+//         // Reset accumulator to avoid drift
+//         this.serverAccumulator = Math.min(this.serverAccumulator, this.serverDt);
+//     }
+
+
+//     interpolatePosition(lastPosition, currentPosition, alpha) {
+//         if (!lastPosition || !currentPosition) return currentPosition || lastPosition;
+//         return {
+//             x: lastPosition.x * (1 - alpha) + currentPosition.x * alpha,
+//             y: lastPosition.y * (1 - alpha) + currentPosition.y * alpha,
+//         };
+//     }
+
+//     interpolateAngle(lastAngle, currentAngle, alpha) {
+//         if (lastAngle === undefined || currentAngle === undefined) return currentAngle || lastAngle;
+
+//         const deltaAngle = ((currentAngle - lastAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
+//         return lastAngle + deltaAngle * alpha;
+//     }
+
+//     interpolate() {
+//         let interpolatedStates = {};
+//         const alpha = Math.max(0, Math.min(this.serverAccumulator / this.serverDt, 1)); // Ensure alpha is between 0 and 1
+
+//         for (let id in this.currentServerState) {
+//             const current = this.currentServerState[id];
+//             const last = this.lastServerState[id] || { ...current }; // Use current as fallback
+
+//             interpolatedStates[id] = {
+//                 position: this.interpolatePosition(last.position, current.position, alpha),
+//                 angle: this.interpolateAngle(last.angle, current.angle, alpha),
+//             };
+//         }
+
+//         return interpolatedStates;
+//     }
+
+//     animate() {
+//         const newTime = performance.now();
+//         let frameTime = (newTime - this.currentTime) / 1000;
+
+//         // Cap frame time to prevent large jumps
+//         if (frameTime > 0.25) frameTime = 0.25;
+//         this.currentTime = newTime;
+//         this.serverAccumulator += frameTime;
+
+//         // Process fixed server updates
+//         while (this.serverAccumulator >= this.serverDt) {
+//             this.serverAccumulator -= this.serverDt;
+//         }
+
+//         // Perform interpolation
+//         const interpolatedStates = this.interpolate();
+//         for (let id in interpolatedStates) {
+//             const { position, angle } = interpolatedStates[id];
+//             const object = objects[id];
+
+//             if (position) object.position = position;
+//             if (angle !== undefined) object.angle = angle;
+//         }
+
+//         // for (let id in this.currentServerState) {
+//         //     const { position, angle } = this.currentServerState[id];
+//         //     const object = objects[id];
+
+//         //     if (position) object.position = position;
+//         //     if (angle !== undefined) object.angle = angle;
+//         // }
+
+//         // FPS calculation
+//         this.frameCount++;
+//         if (newTime - this.lastFrameTime >= 1000) {
+//             this.fps = this.frameCount;
+//             this.frameCount = 0;
+//             this.lastFrameTime = newTime;
+//         }
+
+//         // Render and display FPS
+//         step();
+
+//         ctx.fillStyle = 'black';
+//         ctx.font = '16px Arial';
+//         ctx.fillText(`FPS: ${this.fps}`, 10, 20);
+
+//         requestAnimationFrame(this.animate);
+//     }
+// }
+
+// const renderer = new Renderer();
+
 class Renderer {
     constructor() {
-        this.serverDt = 1 / 60; // Expected server update rate (16.67 ms)
-        this.elapsedTime = 0;
-        this.serverAccumulator = 0;
+        this.currentServerState = {}; // Most recent server state from server
+        this.previousServerState = {}; // Previous server state from server
+        this.lastServerUpdateTime = 0; // Time of the previous server update
 
-        this.currentTime = performance.now();
-
-        this.lastServerState = {};
-        this.currentServerState = {};
+        this.updateInterval = 1000 / 60;
 
         this.animate = this.animate.bind(this);
-        this.animate(performance.now());
-
-        this.frameCount = 0;
         this.lastFrameTime = performance.now();
-        this.fps = 0;
+
+        this.animate(this.lastFrameTime);
     }
 
-    receiveServerState(serverState) {
-        this.lastServerState = { ...this.currentServerState };
-        this.currentServerState = {};
+    receiveServerState(newServerState) {
+        // Store the previous state and update the current state
+        this.previousServerState = { ...this.currentServerState };
+        this.currentServerState = { ...newServerState };
 
-        for (let id in serverState) {
-            const newObject = serverState[id];
-            const lastObject = this.lastServerState[id];
-
-            // Snap to new position if the change is too large
-            if (
-                lastObject &&
-                newObject.position &&
-                lastObject.position &&
-                (Math.abs(newObject.position.x - lastObject.position.x) > 5 || // Threshold for snapping
-                    Math.abs(newObject.position.y - lastObject.position.y) > 5)
-            ) {
-                this.lastServerState[id] = { ...newObject }; // Treat this as the new "last state"
-            }
-
-            this.currentServerState[id] = newObject;
+        // Record the time of this server update
+        const now = performance.now();
+        if (this.lastServerUpdateTime) {
+            // Calculate the time interval between server updates
+            this.updateInterval = now - this.lastServerUpdateTime;
         }
-
-        // Reset accumulator to avoid drift
-        this.serverAccumulator = Math.min(this.serverAccumulator, this.serverDt);
+        this.lastServerUpdateTime = now;
     }
 
+    interpolateObject(object, prevState, currState, alpha) {
+        if (!prevState || !currState) return;
 
-    interpolatePosition(lastPosition, currentPosition, alpha) {
-        if (!lastPosition || !currentPosition) return currentPosition || lastPosition;
-        return {
-            x: lastPosition.x * (1 - alpha) + currentPosition.x * alpha,
-            y: lastPosition.y * (1 - alpha) + currentPosition.y * alpha,
-        };
-    }
-
-    interpolateAngle(lastAngle, currentAngle, alpha) {
-        if (lastAngle === undefined || currentAngle === undefined) return currentAngle || lastAngle;
-
-        const deltaAngle = ((currentAngle - lastAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
-        return lastAngle + deltaAngle * alpha;
-    }
-
-    interpolate() {
-        let interpolatedStates = {};
-        const alpha = Math.max(0, Math.min(this.serverAccumulator / this.serverDt, 1)); // Ensure alpha is between 0 and 1
-
-        for (let id in this.currentServerState) {
-            const current = this.currentServerState[id];
-            const last = this.lastServerState[id] || { ...current }; // Use current as fallback
-
-            interpolatedStates[id] = {
-                position: this.interpolatePosition(last.position, current.position, alpha),
-                angle: this.interpolateAngle(last.angle, current.angle, alpha),
+        // Interpolate position
+        if (prevState.position && currState.position) {
+            object.position = {
+                x: prevState.position.x + alpha * (currState.position.x - prevState.position.x),
+                y: prevState.position.y + alpha * (currState.position.y - prevState.position.y),
             };
         }
 
-        return interpolatedStates;
+        // Interpolate angle
+        if (prevState.angle !== undefined && currState.angle !== undefined) {
+            object.angle = prevState.angle + alpha * (currState.angle - prevState.angle);
+        }
     }
 
-    animate() {
-        const newTime = performance.now();
-        let frameTime = (newTime - this.currentTime) / 1000;
+    animate(frameTime) {
+        const deltaTime = frameTime - this.lastFrameTime;
+        this.lastFrameTime = frameTime;
 
-        // Cap frame time to prevent large jumps
-        if (frameTime > 0.25) frameTime = 0.25;
-        this.currentTime = newTime;
-        this.serverAccumulator += frameTime;
+        // Calculate alpha for interpolation based on time elapsed since the last server update
+        const timeSinceUpdate = frameTime - this.lastServerUpdateTime;
+        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1); // Clamp alpha between 0 and 1
 
-        // Process fixed server updates
-        while (this.serverAccumulator >= this.serverDt) {
-            this.serverAccumulator -= this.serverDt;
-        }
-
-        // Perform interpolation
-        const interpolatedStates = this.interpolate();
-        for (let id in interpolatedStates) {
-            const { position, angle } = interpolatedStates[id];
+        // console.log("Server FPS", 1000 / this.updateInterval);
+        for (let id in this.currentServerState) {
             const object = objects[id];
+            const prevState = this.previousServerState[id];
+            const currState = this.currentServerState[id];
 
-            if (position) object.position = position;
-            if (angle !== undefined) object.angle = angle;
+            if (object) {
+                this.interpolateObject(object, prevState, currState, alpha);
+            }
         }
 
-        // for (let id in this.currentServerState) {
-        //     const { position, angle } = this.currentServerState[id];
-        //     const object = objects[id];
+        // Call your custom step function (e.g., for physics, game logic)
+        step(deltaTime);
 
-        //     if (position) object.position = position;
-        //     if (angle !== undefined) object.angle = angle;
-        // }
-
-        // FPS calculation
-        this.frameCount++;
-        if (newTime - this.lastFrameTime >= 1000) {
-            this.fps = this.frameCount;
-            this.frameCount = 0;
-            this.lastFrameTime = newTime;
-        }
-
-        // Render and display FPS
-        step();
-
-        ctx.fillStyle = 'black';
-        ctx.font = '16px Arial';
-        ctx.fillText(`FPS: ${this.fps}`, 10, 20);
-
+        // Render next frame
         requestAnimationFrame(this.animate);
     }
-}
 
+    step(deltaTime) {
+        // Add game logic or physics updates here if needed
+    }
+}
 const renderer = new Renderer();

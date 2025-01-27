@@ -421,6 +421,71 @@ export default class Game {
             const forward = Vec2(Math.cos(carAngle), Math.sin(carAngle));
 
 
+
+
+
+            // Handle turning
+            if (player.inputs["mousePos"]) {
+
+                let mouseAngle = Math.atan2(player.inputs["mousePos"].y, player.inputs["mousePos"].x);
+                let angleDiff = mouseAngle - carAngle;
+
+                // Normalize the angle difference to the range [-π, π]
+                angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
+                let turnPower = 10;
+                player.car.body.setAngularVelocity(angleDiff * turnPower);
+
+
+                // Left and right car movement
+                let carPos = player.car.body.getPosition();
+                let mousePos = player.inputs["mousePos"].clone().mul(1 / CONSTANTS.SCALE).add(carPos);
+
+                // Vector from car to mouse
+                let toMouse = normalize(Vec2(mousePos.x - carPos.x, mousePos.y - carPos.y));
+
+
+                // Calculate perpendicular vectors (tangents)
+                let tangentLeft = Vec2(-toMouse.y, toMouse.x);  // Rotate 90° counterclockwise
+                let tangentRight = Vec2(toMouse.y, -toMouse.x); // Rotate -90° clockwise
+
+                let moveDir;
+
+                // Set moveDir based on the key pressed
+                if (player.inputs["a"] && !player.inputs["d"]) {
+                    moveDir = tangentLeft; // Move left
+                } else if (player.inputs["d"] && !player.inputs["a"]) {
+                    moveDir = tangentRight; // Move right
+                }
+
+                // Keep mouse in same position
+
+                // if (moveDir) {
+                //     // if (!player.car.lastPosition) player.car.lastPosition = Vec2(0, 0);
+
+                //     let carDiff = carPos.clone().sub(player.car.lastPosition);
+                //     // console.log(carDiff);
+                //     player.inputs.mousePos.add(carDiff.mul(-CONSTANTS.SCALE));
+
+                //     this.io.to(id).emit("mouse pos", player.inputs.mousePos);
+
+                //     let rotateSpeed = 5; // Adjust speed as needed
+                //     player.car.body.applyLinearImpulse(moveDir.mul(rotateSpeed), player.car.body.getWorldCenter(), true);
+                // }
+
+         
+            } else {
+                let turnSpeed = this.TURN_SPEED
+                if (player.inputs["Shift"]) {
+                    turnSpeed = this.POWERSLIDE_TURN_SPEED;
+                }
+
+                if (player.inputs["ArrowLeft"] && !player.inputs["ArrowRight"]) player.car.body.setAngularVelocity(-turnSpeed);
+                else if (player.inputs["ArrowRight"] && !player.inputs["ArrowLeft"]) player.car.body.setAngularVelocity(turnSpeed);
+                else player.car.body.setAngularVelocity(0); // Stop rotation when left or right is released
+
+            }
+
+            // Handle flip, boost, and drive force
             if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
                 player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE), player.car.body.getWorldCenter(), true);
                 player.flip = false;
@@ -444,49 +509,8 @@ export default class Game {
                 }
             }
 
-
-
-            // Handle turning
-            if (player.inputs["mousePos"]) {
-                let mouseAngle = Math.atan2(player.inputs["mousePos"].y, player.inputs["mousePos"].x);
-                let angleDiff = mouseAngle - carAngle;
-
-                // Normalize the angle difference to the range [-π, π]
-                angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
-                let turnPower = 10;
-                player.car.body.setAngularVelocity(angleDiff * turnPower);
-            } else {
-                let turnSpeed = this.TURN_SPEED
-                if (player.inputs["Shift"]) {
-                    turnSpeed = this.POWERSLIDE_TURN_SPEED;
-                }
-
-                if (player.inputs["ArrowLeft"]) player.car.body.setAngularVelocity(-turnSpeed);
-                else if (player.inputs["ArrowRight"]) player.car.body.setAngularVelocity(turnSpeed);
-                else player.car.body.setAngularVelocity(0); // Stop rotation when left or right is released
-
-            }
-
-            // if (player.inputs["mousePos"] != undefined) {
-            //     let carPos = player.car.body.getPosition();
-            //     const mousePos = player.inputs["mousePos"].clone().sub(player.canvasSize.clone().mul(1 / 2)).mul(1 / CONSTANTS.SCALE);
-
-            //     // console.log(Math.round(mousePos.x), Math.round(mousePos.y));
-            //     // player.car.body.setPosition(mousePos);
-            //     let mouseAngle = Math.atan2(mousePos.y - carPos.y, mousePos.x - carPos.x);
-            //     let angleDiff = mouseAngle - carAngle;
-
-            //     angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
-
-            //     player.car.body.setAngularVelocity(angleDiff * 10);
-            // }
-
-
-
-
-
-
         }
+
 
 
 
@@ -551,7 +575,7 @@ export default class Game {
             }
 
             let explosionRadius = 1000;
-            let explosionPower = 125;
+            let explosionPower = 200;
             createExplosion(this.world, explosionCenterTop, explosionRadius, explosionPower);
             createExplosion(this.world, explosionCenterMiddle, explosionRadius, explosionPower);
             createExplosion(this.world, explosionCenterBottom, explosionRadius, explosionPower);
