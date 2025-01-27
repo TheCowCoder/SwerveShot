@@ -87,7 +87,8 @@ body {
 
 /* Score styling */
 #leftScore,
-#rightScore {
+#rightScore,
+#timer {
     position: absolute;
     font-size: 100px;
     font-weight: bold;
@@ -103,4 +104,10 @@ body {
 #rightScore {
     top: 25px;
     right: 25px;
+}
+
+#timer {
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
 }

@@ -174,10 +174,11 @@ socket.on("wall vertices", (_wallVertices) => {
 });
 
 const countdownElement = document.getElementById("countdown");
+const timerEl = document.getElementById("timer");
+
 
 socket.on("countdown", (countdown) => {
     countdownElement.style.display = null;
-
     countdownElement.textContent = countdown;
 
     if (countdown === 0) {
@@ -185,8 +186,20 @@ socket.on("countdown", (countdown) => {
         setTimeout(() => {
             countdownElement.style.display = "none";
         }, 1000);
+
     }
 });
+
+socket.on("game timer", remainingSeconds => {
+    function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    timerEl.textContent = formatTime(remainingSeconds);
+
+})
 
 socket.on("goal", team => {
     if (team === "left") {
@@ -479,6 +492,7 @@ function renderWorld() {
 function step() {
     renderWorld();
 }
+
 class Renderer {
     constructor() {
         this.serverDt = 1 / 60; // Expected server update rate (16.67 ms)
@@ -572,9 +586,17 @@ class Renderer {
         }
 
         // Perform interpolation
-        const interpolatedStates = this.interpolate();
-        for (let id in interpolatedStates) {
-            const { position, angle } = interpolatedStates[id];
+        // const interpolatedStates = this.interpolate();
+        // for (let id in interpolatedStates) {
+        //     const { position, angle } = interpolatedStates[id];
+        //     const object = objects[id];
+
+        //     if (position) object.position = position;
+        //     if (angle !== undefined) object.angle = angle;
+        // }
+
+        for (let id in this.currentServerState) {
+            const { position, angle } = this.currentServerState[id];
             const object = objects[id];
 
             if (position) object.position = position;
@@ -601,4 +623,3 @@ class Renderer {
 }
 
 const renderer = new Renderer();
-

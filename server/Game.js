@@ -127,7 +127,22 @@ export default class Game {
         this.renderer = new Renderer(this, this.FPS);
     }
 
-    start() {
+    pauseTimer() {
+        clearInterval(this.gameTimer);
+    }
+    startTimer() {
+        this.gameTimer = setInterval(this.gameTimerFunc.bind(this), 1000);
+    }
+    gameTimerFunc() {
+        this.remainingSeconds--;
+        if (this.remainingSeconds == 0) {
+            console.log("Game over");
+            clearInterval(this.gameTimer);
+        }
+        this.io.to(this.id).emit("game timer", this.remainingSeconds);
+    }
+
+    start(initial = false) {
         for (let id in this.players) {
             const player = this.players[id];
             player.movementLocked = true;
@@ -157,15 +172,29 @@ export default class Game {
         this.ball.body.setLinearVelocity(Vec2(0, 0));
         this.ball.body.setAngularVelocity(0);
 
+
+        const startGame = () => {
+            for (let id in this.players) {
+                this.players[id].movementLocked = false;
+            }
+
+            if (initial) this.remainingSeconds = 60 * 2;
+
+            this.io.to(this.id).emit("game timer", this.remainingSeconds);
+
+            this.startTimer();
+
+
+        }
+
+
         let countdown = 3;
         function countDown() {
             this.io.to(this.id).emit("countdown", countdown);
 
             if (countdown === 0) {
                 clearInterval(this.countdownInterval);
-                for (let id in this.players) {
-                    this.players[id].movementLocked = false;
-                }
+                startGame();
             }
             countdown--;
         }
@@ -177,6 +206,9 @@ export default class Game {
 
         // Initialize the countdown
         countDown.call(this);
+
+
+
 
     }
 
@@ -502,6 +534,7 @@ export default class Game {
 
         const goalScored = (team) => {
             this.goalScored = true;
+            this.pauseTimer();
 
             let explosionCenterTop;
             let explosionCenterMiddle;

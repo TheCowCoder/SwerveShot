@@ -43,7 +43,7 @@ io.on("connection", (socket) => {
         game.players[socket.id].inputs["mousePos"] = null;
     });
     socket.on("start", () => {
-        if (game) game.start();
+        if (game) game.start(true);
     });
 
     socket.on("team", team => {
