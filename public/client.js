@@ -635,6 +635,9 @@ class Renderer {
         this.animate = this.animate.bind(this);
         this.lastFrameTime = performance.now();
 
+        this.FPS = 0;
+        this.lastFPSUpdate = 0;
+
         this.animate(this.lastFrameTime);
     }
 
@@ -673,6 +676,9 @@ class Renderer {
         const deltaTime = frameTime - this.lastFrameTime;
         this.lastFrameTime = frameTime;
 
+
+
+
         // Calculate alpha for interpolation based on time elapsed since the last server update
         const timeSinceUpdate = frameTime - this.lastServerUpdateTime;
         const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1); // Clamp alpha between 0 and 1
@@ -690,6 +696,14 @@ class Renderer {
 
         // Call your custom step function (e.g., for physics, game logic)
         step(deltaTime);
+
+        if (performance.now() - this.lastFPSUpdate >= 1000) {
+            this.FPS = 1000 / deltaTime;
+            this.lastFPSUpdate = performance.now();
+        }
+        ctx.font = "20px Arial";
+        ctx.fillStyle = "black";
+        ctx.fillText(`FPS: ${Math.round(this.FPS)}`, 10, 30);
 
         // Render next frame
         requestAnimationFrame(this.animate);

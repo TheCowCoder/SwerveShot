@@ -14,11 +14,19 @@ export default class Renderer {
         this.fpsHistory = [];
         this.fpsHistorySize = 10;
 
+        this.running = true;
+
+
         this.animate = this.animate.bind(this);
         this.animate(performance.now());
 
 
         this.alpha = 0;
+
+    }
+
+    stop() {
+        this.running = false;
     }
 
     calculateAverageFPS(fps) {
@@ -58,6 +66,6 @@ export default class Renderer {
             this.alpha = 0;
         }
 
-        setImmediate(this.animate);
+        if (this.running) setImmediate(this.animate);
     }
 }

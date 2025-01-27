@@ -224,6 +224,11 @@ export default class Game {
         delete this.players[socket.id];
 
         socket.leave(this.id);
+
+        if (Object.keys(this.players).length == 0) {
+            this.renderer.stop();
+            delete Game.instances[this.id];
+        }
     }
 
     onBeginContact(contact) {
@@ -410,6 +415,7 @@ export default class Game {
 
 
     step() {
+        console.log(this.id, "stepping");
         this.world.step(1 / this.FPS, this.VELOCITY_ITER, this.POSITION_ITER);
 
         for (let id in this.players) {
@@ -472,7 +478,7 @@ export default class Game {
                 //     player.car.body.applyLinearImpulse(moveDir.mul(rotateSpeed), player.car.body.getWorldCenter(), true);
                 // }
 
-         
+
             } else {
                 let turnSpeed = this.TURN_SPEED
                 if (player.inputs["Shift"]) {
