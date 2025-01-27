@@ -20,6 +20,15 @@ canvas.addEventListener('click', () => {
     canvas.requestPointerLock();
 });
 
+document.addEventListener('pointerlockchange', () => {
+    if (document.pointerLockElement === canvas) {
+        console.log('Pointer lock enabled on canvas');
+    } else {
+        console.log('Pointer lock exited');
+        mousePos = null;
+        socket.emit("exit pointer lock");
+    }
+});
 
 let objects = {};
 let wallVertices;
@@ -102,6 +111,11 @@ function gameLoop() {
 let socket = io({ reconnection: false });
 let ourId;
 let mousePos;
+let settings;
+
+socket.on("settings", _settings => {
+    settings = _settings;
+});
 
 socket.on("your id", id => {
     ourId = id;
@@ -112,7 +126,6 @@ socket.on("mouse pos", pos => {
 
 
 socket.on("objects added", (_objects) => {
-    console.log("Added", _objects);
     for (let id in _objects) {
         let object = _objects[id];
         objects[id] = object;
@@ -154,6 +167,7 @@ socket.on("objects removed", (ids) => {
 
 socket.on("game code", (code) => {
     console.log("The game code is", code);
+    chatLog.value += "The game code is " + code + "\n";
 });
 socket.on("wall vertices", (_wallVertices) => {
     wallVertices = _wallVertices;
@@ -210,6 +224,13 @@ document.addEventListener('mousemove', (event) => {
 
 });
 
+document.addEventListener("mousedown", e => {
+    socket.emit("mousedown", e.button);
+});
+document.addEventListener("mouseup", e => {
+    socket.emit("mouseup", e.button);
+});
+
 document.getElementById("createGameBtn").addEventListener("click", (e) => {
     socket.emit("create game");
     document.getElementById("menu").style.display = "none";
@@ -226,6 +247,9 @@ document.getElementById("joinGameBtn").addEventListener("click", (e) => {
 });
 
 const chatInput = document.getElementById("chatInput")
+const chatLog = document.getElementById("chatLog");
+
+chatLog.value += "Type /settings for settings\n";
 
 chatInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
@@ -241,7 +265,30 @@ chatInput.addEventListener("keydown", function (e) {
                 }
             } else if (cmd === "start") {
                 socket.emit("start");
+            } else if (cmd === "settings") {
+                chatLog.value += `
+-- [Settings] --
+Switch teams: /team <left/right>
+Start game: /start
+
+Sensitivity - mouse sensitivity
+Current value: ${settings.sensitivity}
+Set: /sensitivity <number>
+
+Mouse range - how far the mouse can travel from the car
+Current value: ${settings.mouseRange}
+Set: /mouseRange <number>
+                `.trim() + "\n";
+            } else if (cmd == "sensitivity") {
+                socket.emit("settings", { sensitivity: parseFloat(args[0]) });
+                chatLog.value += "Sensitivity set!\n";
+            } else if (cmd == "mouseRange") {
+                socket.emit("settings", { mouseRange: parseFloat(args[0]) });
+                chatLog.value += "Mouse range set!\n";
             }
+
+            chatLog.scrollTop = chatLog.scrollHeight;
+
         }
 
         chatInput.value = "";
@@ -399,11 +446,10 @@ function renderWorld() {
         }
     }
 
-    if (mousePos != undefined) {
+    if (mousePos) {
         for (let id in objects) {
             const object = objects[id];
             if (object.socketId == ourId) {
-                console.log(object.position);
                 // Draw a small red dot
                 ctx.beginPath();
                 ctx.arc(mousePos.x + (canvas.width / 2) + (object.position.x * CONSTANTS.SCALE), mousePos.y + (canvas.height / 2) + (object.position.y * CONSTANTS.SCALE), 7.5, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
@@ -414,7 +460,7 @@ function renderWorld() {
         }
     }
 
-    git remote set-url origin https://<your-username>@github.com/TheCowCoder/SwerveShot.git
+    // git remote set-url origin https://<your-username>@github.com/TheCowCoder/SwerveShot.git
 
 
 

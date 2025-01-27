@@ -67,7 +67,7 @@ export default class Game {
     constructor(io) {
         this.id = Math.random().toString(36).substr(2, 9);
         this.code = generateFourLetterString();
-        
+
         Game.instances[this.id] = this;
 
         this.io = io;
@@ -100,7 +100,7 @@ export default class Game {
         this.CAR_DENSITY = 0.37;
         this.CAR_FRICTION = 0;
         this.CAR_RESTITUTION = 1;
-        
+
         this.BALL_RADIUS = 0.75 - 0.125; // Meters
         this.BALL_DENSITY = 0.5 - 0.125;
         this.BALL_FRICTION = 0;
@@ -169,19 +169,19 @@ export default class Game {
             }
             countdown--;
         }
-        
+
         // Make sure `this` refers to the correct object
         this.countdownInterval = setInterval(() => {
             countDown.call(this); // Use .call() to ensure `this` is passed correctly
         }, 1000);
-        
+
         // Initialize the countdown
         countDown.call(this);
-        
+
     }
 
 
-    
+
     playerLeft(socket) {
         let player = this.players[socket.id];
 
@@ -210,7 +210,7 @@ export default class Game {
                 }
             }
         }
-    
+
 
     }
     onPostSolve(contact, impulse) {
@@ -272,8 +272,15 @@ export default class Game {
             inputs: {},
             car: carObj,
             flip: true,
-            team: "left"
+            team: "left",
+            settings: {
+                mouseRange: 300,
+                sensitivity: 1.5,
+
+            }
         }
+
+        this.io.to(socket.id).emit("settings", this.players[socket.id].settings);
 
     }
 
@@ -283,14 +290,14 @@ export default class Game {
         function createCircleVertices(center, radius, segments, startAngle = 0, stopAngle = Math.PI * 2) {
             const vertices = [];
             const angleIncrement = (stopAngle - startAngle) / segments;
-        
+
             for (let i = 0; i <= segments; i++) {
                 const angle = startAngle + i * angleIncrement;
                 const x = radius * Math.cos(angle);
                 const y = radius * Math.sin(angle);
                 vertices.push(Vec2(center.x + x, center.y + y));
             }
-        
+
             return vertices;
         }
 
@@ -308,7 +315,7 @@ export default class Game {
 
         let topLeftCorner = createCircleVertices(topLeft.add(Vec2(this.WALL_CORNER_RADIUS, this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(180), degToRad(270));
         let topRightCorner = createCircleVertices(topRight.add(Vec2(-this.WALL_CORNER_RADIUS, this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(270), degToRad(360));
-        
+
         let rightGoal = [
             Vec2(CONSTANTS.FIELD_WIDTH / 2, -this.GOAL_SIZE / 2),
             Vec2(CONSTANTS.FIELD_WIDTH / 2 + this.GOAL_DEPTH, -this.GOAL_SIZE / 2),
@@ -335,7 +342,7 @@ export default class Game {
         this.wallVertices.push(...bottomLeftCorner);
         this.wallVertices.push(...leftGoal);
 
-    
+
         // Create a static body for the walls and attach the chain shape
         const wallsBody = this.world.createBody();
         wallsBody.createFixture(planck.Chain(this.wallVertices, true), {
@@ -343,10 +350,10 @@ export default class Game {
             friction: this.WALL_FRICTION,
             restitution: this.WALL_RESTITUTION
         });
-    
+
         this.walls = wallsBody; // Store the walls body reference
 
-    
+
         // Create the ball at the center of the world (in meters)
         const ball = this.world.createDynamicBody(new Vec2(0, 0));
         ball.createFixture(new planck.Circle(this.BALL_RADIUS), {
@@ -357,7 +364,7 @@ export default class Game {
         ball.setLinearDamping(this.BALL_DAMPING);
         ball.setAngularDamping(1);
         ball.setBullet(true);
-    
+
         this.ball = this.createObject({
             type: "circle",
             position: new Vec2(0, 0),
@@ -367,7 +374,7 @@ export default class Game {
         }, ball);
 
     }
-    
+
 
 
     step() {
@@ -382,11 +389,11 @@ export default class Game {
             const forward = Vec2(Math.cos(carAngle), Math.sin(carAngle));
 
 
-            if (player.inputs["f"] && player.flip) {
+            if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
                 player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE), player.car.body.getWorldCenter(), true);
                 player.flip = false;
             } else {
-                if (player.inputs[" "]) {
+                if (player.inputs[" "] || player.inputs["mouse2"]) {
                     // Apply boost force if space is pressed
                     // player.car.body.applyForceToCenter(forward.mul(this.BOOST_FORCE));
                     player.car.body.applyLinearImpulse(forward.mul(this.BOOST_FORCE), player.car.body.getWorldCenter(), true);
@@ -394,9 +401,9 @@ export default class Game {
                     this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: true } })
                 } else {
                     // Apply normal drive force
-                    if (player.inputs["ArrowUp"] && !player.inputs["ArrowDown"]) {
+                    if ((player.inputs["ArrowUp"] || player.inputs["w"]) && !(player.inputs["ArrowDown"] || player.inputs["s"])) {
                         player.car.body.applyForceToCenter(forward.mul(this.DRIVE_FORCE));
-                    } else if (player.inputs["ArrowDown"] && !player.inputs["ArrowUp"]) {
+                    } else if ((player.inputs["ArrowDown"] || player.inputs["s"]) && !(player.inputs["ArrowUp"] || player.inputs["w"])) {
                         player.car.body.applyForceToCenter(forward.mul(-this.DRIVE_FORCE));
                     }
                     player.car.boosting = false;
@@ -405,42 +412,43 @@ export default class Game {
                 }
             }
 
-            
+
 
             // Handle turning
-            if (player.inputs["mousePos"] != undefined) {
+            if (player.inputs["mousePos"]) {
                 let mouseAngle = Math.atan2(player.inputs["mousePos"].y, player.inputs["mousePos"].x);
                 let angleDiff = mouseAngle - carAngle;
-            
+
                 // Normalize the angle difference to the range [-π, π]
                 angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
                 let turnPower = 10;
                 player.car.body.setAngularVelocity(angleDiff * turnPower);
+            } else {
+                let turnSpeed = this.TURN_SPEED
+                if (player.inputs["Shift"]) {
+                    turnSpeed = this.POWERSLIDE_TURN_SPEED;
+                }
+
+                if (player.inputs["ArrowLeft"]) player.car.body.setAngularVelocity(-turnSpeed);
+                else if (player.inputs["ArrowRight"]) player.car.body.setAngularVelocity(turnSpeed);
+                else player.car.body.setAngularVelocity(0); // Stop rotation when left or right is released
+
             }
 
             // if (player.inputs["mousePos"] != undefined) {
             //     let carPos = player.car.body.getPosition();
             //     const mousePos = player.inputs["mousePos"].clone().sub(player.canvasSize.clone().mul(1 / 2)).mul(1 / CONSTANTS.SCALE);
-                
+
             //     // console.log(Math.round(mousePos.x), Math.round(mousePos.y));
             //     // player.car.body.setPosition(mousePos);
             //     let mouseAngle = Math.atan2(mousePos.y - carPos.y, mousePos.x - carPos.x);
             //     let angleDiff = mouseAngle - carAngle;
-            
+
             //     angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
-            
+
             //     player.car.body.setAngularVelocity(angleDiff * 10);
             // }
-            
 
-            // let turnSpeed = this.TURN_SPEED
-            // if (player.inputs["Shift"]) {
-            //     turnSpeed = this.POWERSLIDE_TURN_SPEED;
-            // }
-            
-            // if (player.inputs["ArrowLeft"]) player.car.body.setAngularVelocity(-turnSpeed);
-            // else if (player.inputs["ArrowRight"]) player.car.body.setAngularVelocity(turnSpeed);
-            // else player.car.body.setAngularVelocity(0); // Stop rotation when left or right is released
 
 
 
@@ -494,7 +502,7 @@ export default class Game {
 
         const goalScored = (team) => {
             this.goalScored = true;
-            
+
             let explosionCenterTop;
             let explosionCenterMiddle;
             let explosionCenterBottom;
@@ -530,12 +538,12 @@ export default class Game {
             if (rightGoalIntersection) {
                 goalScored("right");
             }
-    
+
             let leftGoalIntersection = circleRectIntersection(ballPos.x, ballPos.y, this.BALL_RADIUS, this.leftGoalVertices[0].x, this.leftGoalVertices[0].y, this.leftGoalVertices[2].x, this.leftGoalVertices[2].y, true);
             if (leftGoalIntersection) {
                 goalScored("left");
             }
-    
+
         }
 
         let objectUpdates = {};
@@ -568,28 +576,34 @@ export default class Game {
         }
     }
 
-    
+
     // mouseMove(id, x, y, w, h) {
     //     this.players[id].inputs["mousePos"] = Vec2(x, y);
     //     this.players[id].canvasSize = Vec2(w, h);
     // }
 
     mouseMove(id, dx, dy) {
-        if (!this.players[id].inputs["mousePos"]) this.players[id].inputs["mousePos"] = Vec2(0, 0);
-
         const player = this.players[id];
-        let sens = 1;
+        if (!player.inputs["mousePos"]) player.inputs["mousePos"] = Vec2(0, 0);
+
+        let sens = player.settings.sensitivity;
         let mousePos = player.inputs["mousePos"].add(Vec2(dx * sens, dy * sens));
 
         let mouseDir = normalize(mousePos);
-        let mouseRadius = 200;
-        if (mousePos.length() > mouseRadius) {
-            mousePos = mouseDir.mul(mouseRadius);
+        let mouseRange = player.settings.mouseRange;
+        if (mousePos.length() > mouseRange) {
+            mousePos = mouseDir.mul(mouseRange);
         }
 
         this.io.to(id).emit("mouse pos", mousePos);
 
         this.players[id].inputs["mousePos"] = mousePos;
+    }
+    mouseDown(id, button) {
+        this.players[id].inputs[`mouse${button}`] = true;
+    }
+    mouseUp(id, button) {
+        this.players[id].inputs[`mouse${button}`] = false;
     }
 
     keyDown(id, key) {

@@ -62,8 +62,8 @@ make car shape editor
 fix interpolation glitch when tp
 
 Sun Jan 26, 4:43pm TODO
-make github and work on pc for mouse
-make mouse control mode
+make github and work on pc for mouse []
+make mouse control mode []
 fine tune ball control
 WORK TOWARDS FINISHED GAME
 1. Add match timer
@@ -72,3 +72,5 @@ WORK TOWARDS FINISHED GAME
 > we need race and speedrun modes
 
 make air hockey mode where car sticks to mouse
+
+make option to turn off scoring and goal explosion in private game

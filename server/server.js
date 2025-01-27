@@ -33,8 +33,15 @@ io.on("connection", (socket) => {
 
     socket.emit("your id", socket.id);
 
-    
+    socket.on("settings", settings => {
+        for (let key in settings) {
+            game.players[socket.id].settings[key] = settings[key];
+        }
+    });
 
+    socket.on("exit pointer lock", () => {
+        game.players[socket.id].inputs["mousePos"] = null;
+    });
     socket.on("start", () => {
         if (game) game.start();
     });
@@ -60,13 +67,19 @@ io.on("connection", (socket) => {
             if (_game.code === code) {
                 _game.playerJoined(socket);
                 game = _game;
+                socket.emit("game code", game.code);
             }
         }
     });
     socket.on("mousemove", (x, y, w, h) => {
-        console.log("STEP 1", w, h);
         if (game) game.mouseMove(socket.id, x, y, w, h);
-    
+
+    });
+    socket.on("mousedown", (button) => {
+        if (game) game.mouseDown(socket.id, button);
+    });
+    socket.on("mouseup", (button) => {
+        if (game) game.mouseUp(socket.id, button);
     });
     socket.on("keydown", (key) => {
         if (game) game.keyDown(socket.id, key);
