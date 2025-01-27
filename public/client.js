@@ -586,22 +586,22 @@ class Renderer {
         }
 
         // Perform interpolation
-        // const interpolatedStates = this.interpolate();
-        // for (let id in interpolatedStates) {
-        //     const { position, angle } = interpolatedStates[id];
-        //     const object = objects[id];
-
-        //     if (position) object.position = position;
-        //     if (angle !== undefined) object.angle = angle;
-        // }
-
-        for (let id in this.currentServerState) {
-            const { position, angle } = this.currentServerState[id];
+        const interpolatedStates = this.interpolate();
+        for (let id in interpolatedStates) {
+            const { position, angle } = interpolatedStates[id];
             const object = objects[id];
 
             if (position) object.position = position;
             if (angle !== undefined) object.angle = angle;
         }
+
+        // for (let id in this.currentServerState) {
+        //     const { position, angle } = this.currentServerState[id];
+        //     const object = objects[id];
+
+        //     if (position) object.position = position;
+        //     if (angle !== undefined) object.angle = angle;
+        // }
 
         // FPS calculation
         this.frameCount++;
