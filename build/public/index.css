@@ -1,0 +1,113 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+#gameCanvas {
+    background-color: #3a9f58;
+    /* display: none; */
+}
+
+#menu {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+#menu button {
+    display: block;
+    width: 200px;
+    padding: 15px;
+    margin: 10px auto;
+    font-size: 18px;
+    font-family: Arial, sans-serif;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#menu button:hover {
+    background-color: #0056b3;
+}
+
+#chat {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 300px;
+}
+
+#chat input {
+    width: 100%;
+    padding: 7px;
+    font-size: 20px;
+    border: 2px solid #000000;
+    border-radius: 5px;
+    box-sizing: border-box;
+    background-color: rgb(0 0 0 / 38%);
+    color: white;
+    outline: none;
+}
+
+
+
+#chatLog {
+    background-color: rgb(0 0 0 / 38%);
+    border: 2px solid #000000;
+    border-radius: 5px;
+    width: 100%;
+    height: 100px;
+    color: white;
+    outline: none;
+    font-size: 14px;
+
+}
+
+#chat input::placeholder {
+    color: lightgrey;
+    /* Change this to your desired color */
+}
+
+#countdown {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 250px;
+    font-weight: bold;
+    color: white;
+    z-index: 1000;
+}
+
+/* Score styling */
+#leftScore,
+#rightScore,
+#timer {
+    position: absolute;
+    font-size: 100px;
+    font-weight: bold;
+    color: white;
+    z-index: 1000;
+}
+
+#leftScore {
+    top: 25px;
+    left: 25px;
+}
+
+#rightScore {
+    top: 25px;
+    right: 25px;
+}
+
+#timer {
+    top: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+}
