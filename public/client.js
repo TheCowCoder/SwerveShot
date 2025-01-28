@@ -651,6 +651,8 @@ class Renderer {
         if (this.lastServerUpdateTime) {
             // Calculate the time interval between server updates
             this.updateInterval = now - this.lastServerUpdateTime;
+
+            console.log("Server FPS:", 1000 / this.updateInterval);
         }
         this.lastServerUpdateTime = now;
     }
