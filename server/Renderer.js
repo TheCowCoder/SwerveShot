@@ -55,7 +55,7 @@ export default class Renderer {
             if (updateTime > 0) {
                 const fps = 1 / updateTime;
                 const avgfps = this.calculateAverageFPS(fps);
-                // console.log(avgfps);
+                console.log(avgfps);
             }
 
             this.elapsedTime += this.dt;

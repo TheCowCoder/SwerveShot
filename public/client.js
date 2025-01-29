@@ -641,35 +641,33 @@ class Renderer {
         this.animate(this.lastFrameTime);
     }
 
-    // receiveServerState(newServerState, timestamp) {
-    //     this.previousServerState = { ...this.currentServerState };
-    //     this.currentServerState = { ...newServerState };
-    
-    //     let now = performance.now();
-    //     if (this.lastServerUpdateTime) {
-    //         this.updateInterval = now - this.lastServerUpdateTime;
-
-    //         console.log("Server FPS:", 1000 / this.updateInterval);
-    //     }
-    //     this.lastServerUpdateTime = now;
-    // }
 
     receiveServerState(newServerState, serverTimestamp) {
         this.previousServerState = { ...this.currentServerState };
         this.currentServerState = { ...newServerState };
     
-        let clientTime = Date.now(); // Absolute client time
-        let networkLatency = clientTime - serverTimestamp; // Estimate round-trip delay
+        let clientTime = Date.now(); 
+        let networkLatency = clientTime - serverTimestamp;
+        let adjustedServerTime = serverTimestamp + networkLatency / 2;
     
-        let adjustedServerTime = serverTimestamp + networkLatency / 2; // Best guess of when the server sent the update
+        console.log(`Raw Values: 
+            serverTimestamp: ${serverTimestamp}
+            clientTime: ${clientTime}
+            networkLatency: ${networkLatency}
+            adjustedServerTime: ${adjustedServerTime}
+            lastServerUpdateTime: ${this.lastServerUpdateTime}`);
     
         if (this.lastServerUpdateTime) {
-            this.updateInterval = adjustedServerTime - this.lastServerUpdateTime; // Time between updates
-            console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
+            let newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
+            // console.log(`Calculated updateInterval: ${newUpdateInterval}`);
+    
+            this.updateInterval = newUpdateInterval;
+            // console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
         }
     
-        this.lastServerUpdateTime = adjustedServerTime; // Store the last known update time
+        this.lastServerUpdateTime = adjustedServerTime;
     }
+    
     
     
 
