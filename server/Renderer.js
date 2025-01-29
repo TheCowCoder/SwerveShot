@@ -1,4 +1,3 @@
-
 export default class Renderer {
     constructor(game, FPS) {
         this.game = game;
@@ -10,28 +9,19 @@ export default class Renderer {
         this.currentTime = performance.now();
         this.lastUpdateTime = performance.now();
         
-        this.fpsHistory = [];
-        this.fpsHistorySize = 10;
-        
         this.running = true;
         
         this.animate = this.animate.bind(this);
         this.animate(this.currentTime);
         
         this.alpha = 0;
+        
+        // Add a timer to log FPS every second
+        this.lastLogTime = this.currentTime;
     }
 
     stop() {
         this.running = false;
-    }
-
-    calculateAverageFPS(fps) {
-        this.fpsHistory.push(fps);
-        if (this.fpsHistory.length > this.fpsHistorySize) {
-            this.fpsHistory.shift();
-        }
-        const avgFps = this.fpsHistory.reduce((sum, value) => sum + value, 0) / this.fpsHistory.length;
-        return avgFps.toFixed(2);
     }
 
     animate(timeTest) {
@@ -50,12 +40,13 @@ export default class Renderer {
             let updateTime = (newTime - this.lastUpdateTime) / 1000; // Time since last update in seconds
             this.lastUpdateTime = newTime;
 
-            // Calculate FPS for debugging and smoothing purposes
-            if (updateTime > 0) {
-                const fps = 1 / updateTime;
-                const avgfps = this.calculateAverageFPS(fps);
-                // This is the main logging
-                console.log(`Server FPS: ${avgfps}`);
+            // Calculate FPS for debugging purposes and log every second
+            const fps = 1 / updateTime;
+            const now = performance.now();
+            
+            if (now - this.lastLogTime >= 1000) { // 1000ms = 1 second
+                console.log(`FPS: ${fps.toFixed(2)}`);
+                this.lastLogTime = now; // Update last log time
             }
 
             this.elapsedTime += this.dt;

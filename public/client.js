@@ -638,6 +638,8 @@ class Renderer {
         this.FPS = 0;
         this.lastFPSUpdate = 0;
 
+        this.lastServerFPSUpdate = 0;
+
         this.animate(this.lastFrameTime);
     }
 
@@ -654,7 +656,13 @@ class Renderer {
             
             // Stabilize update interval to avoid extreme fluctuations
             this.updateInterval = this.smoothUpdateInterval(newUpdateInterval);
-            console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
+
+            if (performance.now() - this.lastServerFPSUpdate >= 1000) {
+                console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
+
+                this.lastServerFPSUpdate = performance.now();
+            }
+
         }
     
         this.lastServerUpdateTime = adjustedServerTime;
