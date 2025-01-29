@@ -132,7 +132,7 @@ socket.on("objects added", (_objects) => {
     }
 });
 
-socket.on("object updates", (objectUpdates) => {
+socket.on("object updates", (objectUpdates, timestamp) => {
     let interpolationObjectUpdates = {};
     for (let id in objectUpdates) {
         const values = objectUpdates[id];
@@ -155,7 +155,7 @@ socket.on("object updates", (objectUpdates) => {
         }
     }
     if (Object.keys(interpolationObjectUpdates).length) {
-        renderer.receiveServerState(interpolationObjectUpdates);
+        renderer.receiveServerState(interpolationObjectUpdates, timestamp);
     }
 });
 
@@ -641,21 +641,37 @@ class Renderer {
         this.animate(this.lastFrameTime);
     }
 
-    receiveServerState(newServerState) {
-        // Store the previous state and update the current state
+    // receiveServerState(newServerState, timestamp) {
+    //     this.previousServerState = { ...this.currentServerState };
+    //     this.currentServerState = { ...newServerState };
+    
+    //     let now = performance.now();
+    //     if (this.lastServerUpdateTime) {
+    //         this.updateInterval = now - this.lastServerUpdateTime;
+
+    //         console.log("Server FPS:", 1000 / this.updateInterval);
+    //     }
+    //     this.lastServerUpdateTime = now;
+    // }
+
+    receiveServerState(newServerState, serverTimestamp) {
         this.previousServerState = { ...this.currentServerState };
         this.currentServerState = { ...newServerState };
-
-        // Record the time of this server update
-        const now = performance.now();
+    
+        let clientTime = Date.now(); // Absolute client time
+        let networkLatency = clientTime - serverTimestamp; // Estimate round-trip delay
+    
+        let adjustedServerTime = serverTimestamp + networkLatency / 2; // Best guess of when the server sent the update
+    
         if (this.lastServerUpdateTime) {
-            // Calculate the time interval between server updates
-            this.updateInterval = now - this.lastServerUpdateTime;
-
-            console.log("Server FPS:", 1000 / this.updateInterval);
+            this.updateInterval = adjustedServerTime - this.lastServerUpdateTime; // Time between updates
+            console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
         }
-        this.lastServerUpdateTime = now;
+    
+        this.lastServerUpdateTime = adjustedServerTime; // Store the last known update time
     }
+    
+    
 
     interpolateObject(object, prevState, currState, alpha) {
         if (!prevState || !currState) return;
@@ -674,7 +690,7 @@ class Renderer {
         }
     }
 
-    animate(frameTime) {
+    animate1(frameTime) {
         const deltaTime = frameTime - this.lastFrameTime;
         this.lastFrameTime = frameTime;
 
@@ -711,6 +727,38 @@ class Renderer {
         requestAnimationFrame(this.animate);
     }
 
+    animate(frameTime) {
+        const deltaTime = frameTime - this.lastFrameTime;
+        this.lastFrameTime = frameTime;
+    
+        // Adjusted alpha: Use server timestamps instead of purely local time
+        const timeSinceUpdate = Date.now() - this.lastServerUpdateTime;
+        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1); // Clamp between 0-1
+    
+        for (let id in this.currentServerState) {
+            const object = objects[id];
+            const prevState = this.previousServerState[id];
+            const currState = this.currentServerState[id];
+    
+            if (object) {
+                this.interpolateObject(object, prevState, currState, alpha);
+            }
+        }
+    
+        step(deltaTime);
+    
+        if (performance.now() - this.lastFPSUpdate >= 1000) {
+            this.FPS = 1000 / deltaTime;
+            this.lastFPSUpdate = performance.now();
+        }
+        ctx.font = "20px Arial";
+        ctx.fillStyle = "black";
+        ctx.fillText(`FPS: ${Math.round(this.FPS)}`, 10, 30);
+    
+        requestAnimationFrame(this.animate);
+    }
+
+    
     step(deltaTime) {
         // Add game logic or physics updates here if needed
     }

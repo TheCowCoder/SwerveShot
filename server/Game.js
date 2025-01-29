@@ -634,7 +634,7 @@ export default class Game {
         }
 
         if (Object.keys(objectUpdates).length) {
-            this.io.to(this.id).emit("object updates", objectUpdates);
+            this.io.to(this.id).emit("object updates", objectUpdates, Date.now());
         }
     }
 
