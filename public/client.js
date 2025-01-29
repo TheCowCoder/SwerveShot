@@ -646,9 +646,12 @@ class Renderer {
         this.previousServerState = { ...this.currentServerState };
         this.currentServerState = { ...newServerState };
     
-        let clientTime = performance.now(); // Ensure consistency
-        let networkLatency = Math.max(0, clientTime - serverTimestamp); // Prevent negative values
-        let adjustedServerTime = serverTimestamp + networkLatency / 2;
+        let clientTime = performance.now();
+        let networkLatency = Math.max(0, clientTime - serverTimestamp); // Prevent negative latency
+    
+        // Apply smoothing factor to latency adjustments
+        let adjustedLatency = this.smoothLatency(networkLatency);
+        let adjustedServerTime = serverTimestamp + adjustedLatency / 2;
     
         if (this.lastServerUpdateTime) {
             let newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
@@ -658,6 +661,14 @@ class Renderer {
     
         this.lastServerUpdateTime = adjustedServerTime;
     }
+
+    smoothLatency(latency) {
+        const smoothingFactor = 0.1; // Can adjust for a more/less aggressive smoothing
+        this.smoothedLatency = this.smoothedLatency ? (this.smoothedLatency * (1 - smoothingFactor)) + (latency * smoothingFactor) : latency;
+        return this.smoothedLatency;
+    }
+    
+    
     
     
     
@@ -679,6 +690,7 @@ class Renderer {
         }
     }
 
+
     animate(frameTime) {
         const deltaTime = frameTime - this.lastFrameTime;
         this.lastFrameTime = frameTime;
@@ -687,13 +699,16 @@ class Renderer {
         const timeSinceUpdate = Date.now() - this.lastServerUpdateTime;
         const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1); // Clamp between 0-1
     
+        // Smooth alpha to avoid spikes in the animation
+        const smoothAlpha = this.smoothAlpha(alpha);
+        
         for (let id in this.currentServerState) {
             const object = objects[id];
             const prevState = this.previousServerState[id];
             const currState = this.currentServerState[id];
     
             if (object) {
-                this.interpolateObject(object, prevState, currState, alpha);
+                this.interpolateObject(object, prevState, currState, smoothAlpha);
             }
         }
     
@@ -709,7 +724,14 @@ class Renderer {
     
         requestAnimationFrame(this.animate);
     }
-
+    
+    // Smoothing function for alpha
+    smoothAlpha(alpha) {
+        const smoothingFactor = 0.05; // Can adjust to make smoothing stronger/weaker
+        this.smoothedAlpha = this.smoothedAlpha !== undefined ? (this.smoothedAlpha * (1 - smoothingFactor)) + (alpha * smoothingFactor) : alpha;
+        return this.smoothedAlpha;
+    }
+    
     
     step(deltaTime) {
         // Add game logic or physics updates here if needed
