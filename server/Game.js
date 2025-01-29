@@ -577,7 +577,7 @@ export default class Game {
                 explosionCenterTop = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, -this.GOAL_SIZE / 2);
                 explosionCenterMiddle = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, 0);
                 explosionCenterBottom = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, this.GOAL_SIZE / 2);
-            }
+            } 
 
             let explosionRadius = 1000;
             let explosionPower = 200;
@@ -634,7 +634,7 @@ export default class Game {
         }
 
         if (Object.keys(objectUpdates).length) {
-            this.io.to(this.id).emit("object updates", objectUpdates, Date.now());
+            this.io.to(this.id).emit("object updates", objectUpdates, performance.now());
         }
     }
 

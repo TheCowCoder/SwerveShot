@@ -646,23 +646,14 @@ class Renderer {
         this.previousServerState = { ...this.currentServerState };
         this.currentServerState = { ...newServerState };
     
-        let clientTime = Date.now(); 
-        let networkLatency = clientTime - serverTimestamp;
+        let clientTime = performance.now(); // Ensure consistency
+        let networkLatency = Math.max(0, clientTime - serverTimestamp); // Prevent negative values
         let adjustedServerTime = serverTimestamp + networkLatency / 2;
-    
-        console.log(`Raw Values: 
-            serverTimestamp: ${serverTimestamp}
-            clientTime: ${clientTime}
-            networkLatency: ${networkLatency}
-            adjustedServerTime: ${adjustedServerTime}
-            lastServerUpdateTime: ${this.lastServerUpdateTime}`);
     
         if (this.lastServerUpdateTime) {
             let newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
-            // console.log(`Calculated updateInterval: ${newUpdateInterval}`);
-    
-            this.updateInterval = newUpdateInterval;
-            // console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
+            this.updateInterval = Math.max(16, newUpdateInterval); // Avoid 0 or negative values
+            console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
         }
     
         this.lastServerUpdateTime = adjustedServerTime;
@@ -686,43 +677,6 @@ class Renderer {
         if (prevState.angle !== undefined && currState.angle !== undefined) {
             object.angle = prevState.angle + alpha * (currState.angle - prevState.angle);
         }
-    }
-
-    animate1(frameTime) {
-        const deltaTime = frameTime - this.lastFrameTime;
-        this.lastFrameTime = frameTime;
-
-
-
-
-        // Calculate alpha for interpolation based on time elapsed since the last server update
-        const timeSinceUpdate = frameTime - this.lastServerUpdateTime;
-        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1); // Clamp alpha between 0 and 1
-
-        // console.log("Server FPS", 1000 / this.updateInterval);
-        for (let id in this.currentServerState) {
-            const object = objects[id];
-            const prevState = this.previousServerState[id];
-            const currState = this.currentServerState[id];
-
-            if (object) {
-                this.interpolateObject(object, prevState, currState, alpha);
-            }
-        }
-
-        // Call your custom step function (e.g., for physics, game logic)
-        step(deltaTime);
-
-        if (performance.now() - this.lastFPSUpdate >= 1000) {
-            this.FPS = 1000 / deltaTime;
-            this.lastFPSUpdate = performance.now();
-        }
-        ctx.font = "20px Arial";
-        ctx.fillStyle = "black";
-        ctx.fillText(`FPS: ${Math.round(this.FPS)}`, 10, 30);
-
-        // Render next frame
-        requestAnimationFrame(this.animate);
     }
 
     animate(frameTime) {
