@@ -641,36 +641,34 @@ class Renderer {
         this.animate(this.lastFrameTime);
     }
 
-
     receiveServerState(newServerState, serverTimestamp) {
         this.previousServerState = { ...this.currentServerState };
         this.currentServerState = { ...newServerState };
     
-        let clientTime = performance.now();
-        let networkLatency = Math.max(0, clientTime - serverTimestamp); // Prevent negative latency
-    
-        // Apply smoothing factor to latency adjustments
-        let adjustedLatency = this.smoothLatency(networkLatency);
-        let adjustedServerTime = serverTimestamp + adjustedLatency / 2;
+        let clientTime = performance.now(); 
+        let networkLatency = clientTime - serverTimestamp; 
+        let adjustedServerTime = serverTimestamp + networkLatency / 2; // Adjust the server time for latency
     
         if (this.lastServerUpdateTime) {
             let newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
-            this.updateInterval = Math.max(16, newUpdateInterval); // Avoid 0 or negative values
+            
+            // Stabilize update interval to avoid extreme fluctuations
+            this.updateInterval = this.smoothUpdateInterval(newUpdateInterval);
             console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
         }
     
         this.lastServerUpdateTime = adjustedServerTime;
     }
-
-    smoothLatency(latency) {
-        const smoothingFactor = 0.1; // Can adjust for a more/less aggressive smoothing
-        this.smoothedLatency = this.smoothedLatency ? (this.smoothedLatency * (1 - smoothingFactor)) + (latency * smoothingFactor) : latency;
-        return this.smoothedLatency;
+    
+    // Function to smooth the update interval calculation
+    smoothUpdateInterval(newInterval) {
+        // Use a smoothing factor to make the update interval more stable
+        const smoothingFactor = 0.1; // Adjust this value for more/less smoothing
+        this.smoothedInterval = this.smoothedInterval !== undefined ? (this.smoothedInterval * (1 - smoothingFactor)) + (newInterval * smoothingFactor) : newInterval;
+        return this.smoothedInterval;
     }
-    
-    
-    
-    
+
+        
     
 
     interpolateObject(object, prevState, currState, alpha) {
@@ -690,34 +688,34 @@ class Renderer {
         }
     }
 
-
     animate(frameTime) {
         const deltaTime = frameTime - this.lastFrameTime;
         this.lastFrameTime = frameTime;
     
-        // Adjusted alpha: Use server timestamps instead of purely local time
+        // Use a stable updateInterval based on the server's time adjustment
         const timeSinceUpdate = Date.now() - this.lastServerUpdateTime;
-        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1); // Clamp between 0-1
+        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1); // Ensure alpha is between 0 and 1
     
-        // Smooth alpha to avoid spikes in the animation
-        const smoothAlpha = this.smoothAlpha(alpha);
-        
+        // Interpolate objects smoothly based on the time elapsed
         for (let id in this.currentServerState) {
             const object = objects[id];
             const prevState = this.previousServerState[id];
             const currState = this.currentServerState[id];
     
             if (object) {
-                this.interpolateObject(object, prevState, currState, smoothAlpha);
+                this.interpolateObject(object, prevState, currState, alpha);
             }
         }
     
+        // Step function for any additional game logic or physics updates
         step(deltaTime);
     
+        // Calculate and log FPS in a stable manner
         if (performance.now() - this.lastFPSUpdate >= 1000) {
             this.FPS = 1000 / deltaTime;
             this.lastFPSUpdate = performance.now();
         }
+    
         ctx.font = "20px Arial";
         ctx.fillStyle = "black";
         ctx.fillText(`FPS: ${Math.round(this.FPS)}`, 10, 30);
@@ -725,13 +723,7 @@ class Renderer {
         requestAnimationFrame(this.animate);
     }
     
-    // Smoothing function for alpha
-    smoothAlpha(alpha) {
-        const smoothingFactor = 0.05; // Can adjust to make smoothing stronger/weaker
-        this.smoothedAlpha = this.smoothedAlpha !== undefined ? (this.smoothedAlpha * (1 - smoothingFactor)) + (alpha * smoothingFactor) : alpha;
-        return this.smoothedAlpha;
-    }
-    
+
     
     step(deltaTime) {
         // Add game logic or physics updates here if needed
