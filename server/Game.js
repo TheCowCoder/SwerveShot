@@ -465,11 +465,17 @@ export default class Game {
                 // Keep mouse in same position
 
                 if (moveDir) {
+                    let carDiff = carPos.clone().sub(player.car.lastPosition);
+                    // console.log(carDiff);
+                    player.inputs.mousePos.sub(carDiff.mul(CONSTANTS.SCALE));
+                    this.io.to(id).emit("mouse pos", player.inputs.mousePos);
+
                     let lateralImpulse = 10; // Adjust impulse strength as needed
                     // Apply lateral impulse to the car
                     let speed = player.car.body.getLinearVelocity().clone().length();
 
-                    player.car.body.applyLinearImpulse(moveDir.mul(lateralImpulse / speed), player.car.body.getWorldCenter(), true);
+                    let counterCentrifugalForce = toMouse.clone().mul(1);
+                    player.car.body.applyLinearImpulse(moveDir.mul(lateralImpulse / speed).add(counterCentrifugalForce), player.car.body.getWorldCenter(), true);
                 }
 
 
