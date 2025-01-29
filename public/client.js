@@ -263,6 +263,7 @@ const chatInput = document.getElementById("chatInput")
 const chatLog = document.getElementById("chatLog");
 
 chatLog.value += "Type /settings for settings\n";
+chatLog.value += "Type /controls for controls\n";
 
 chatInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
@@ -298,6 +299,20 @@ Set: /mouseRange <number>
             } else if (cmd == "mouseRange") {
                 socket.emit("settings", { mouseRange: parseFloat(args[0]) });
                 chatLog.value += "Mouse range set!\n";
+            } else if (cmd == "controls") {
+                chatLog.value += `
+Arrow keys = Move
+Space = Boost
+F = Flip
+Shift = Tight turn
+
+Mouse control mode:
+Click the screen to enable
+Move mouse = Aim car
+WASD = Move around
+Left click = Flip
+Right click = Boost
+                `.trim() + "\n";
             }
 
             chatLog.scrollTop = chatLog.scrollHeight;

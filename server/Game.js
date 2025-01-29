@@ -399,7 +399,7 @@ export default class Game {
             restitution: this.BALL_RESTITUTION
         });
         ball.setLinearDamping(this.BALL_DAMPING);
-        ball.setAngularDamping(1);
+        ball.setAngularDamping(0.75);
         ball.setBullet(true);
 
         this.ball = this.createObject({
@@ -450,8 +450,8 @@ export default class Game {
 
 
                 // Calculate perpendicular vectors (tangents)
-                let tangentLeft = Vec2(-toMouse.y, toMouse.x);  // Rotate 90° counterclockwise
-                let tangentRight = Vec2(toMouse.y, -toMouse.x); // Rotate -90° clockwise
+                let tangentLeft = Vec2(toMouse.y, -toMouse.x);  // Rotate 90° counterclockwise
+                let tangentRight = Vec2(-toMouse.y, toMouse.x); // Rotate -90° clockwise
 
                 let moveDir;
 
@@ -464,18 +464,13 @@ export default class Game {
 
                 // Keep mouse in same position
 
-                // if (moveDir) {
-                //     // if (!player.car.lastPosition) player.car.lastPosition = Vec2(0, 0);
+                if (moveDir) {
+                    let lateralImpulse = 10; // Adjust impulse strength as needed
+                    // Apply lateral impulse to the car
+                    let speed = player.car.body.getLinearVelocity().clone().length();
 
-                //     let carDiff = carPos.clone().sub(player.car.lastPosition);
-                //     // console.log(carDiff);
-                //     player.inputs.mousePos.add(carDiff.mul(-CONSTANTS.SCALE));
-
-                //     this.io.to(id).emit("mouse pos", player.inputs.mousePos);
-
-                //     let rotateSpeed = 5; // Adjust speed as needed
-                //     player.car.body.applyLinearImpulse(moveDir.mul(rotateSpeed), player.car.body.getWorldCenter(), true);
-                // }
+                    player.car.body.applyLinearImpulse(moveDir.mul(lateralImpulse / speed), player.car.body.getWorldCenter(), true);
+                }
 
 
             } else {
@@ -577,7 +572,7 @@ export default class Game {
                 explosionCenterTop = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, -this.GOAL_SIZE / 2);
                 explosionCenterMiddle = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, 0);
                 explosionCenterBottom = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, this.GOAL_SIZE / 2);
-            } 
+            }
 
             let explosionRadius = 1000;
             let explosionPower = 200;

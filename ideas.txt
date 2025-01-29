@@ -75,13 +75,12 @@ make air hockey mode where car sticks to mouse
 
 make option to turn off scoring and goal explosion in private game
 
-fix interpolation
 
 release on itch.io
 
 
 Todo Wed Jan 29 9:43 AM
-Fix interpolation with slow network
+Fix interpolation with slow network DONE
 Add race maps
 - maybe add limited boost
 - add timer to race for speedrun
