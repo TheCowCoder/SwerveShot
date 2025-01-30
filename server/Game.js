@@ -465,6 +465,7 @@ export default class Game {
                 // Keep mouse in same position
 
                 if (moveDir) {
+                    // Calculate destination distance from mouse cursor and apply force
                     let carDiff = carPos.clone().sub(player.car.lastPosition);
                     // console.log(carDiff);
                     player.inputs.mousePos.sub(carDiff.mul(CONSTANTS.SCALE));
