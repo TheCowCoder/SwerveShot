@@ -203,13 +203,13 @@ socket.on("game timer", remainingSeconds => {
 
 socket.on("goal", team => {
     if (team === "left") {
-        let leftScoreElement = document.getElementById("leftScore");
-        let currentScore = parseInt(leftScoreElement.innerText);
-        leftScoreElement.innerText = currentScore + 1;
-    } else if (team === "right") {
         let rightScoreElement = document.getElementById("rightScore");
         let currentScore = parseInt(rightScoreElement.innerText);
         rightScoreElement.innerText = currentScore + 1;
+    } else if (team === "right") {
+        let leftScoreElement = document.getElementById("leftScore");
+        let currentScore = parseInt(leftScoreElement.innerText);
+        leftScoreElement.innerText = currentScore + 1;
     }
 });
 
