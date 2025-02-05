@@ -224,6 +224,13 @@ export default class Game {
         countDown.call(this);
     }
 
+    end() {
+        clearInterval(this.gameTimer);
+        this.running = false;
+        this.io.to(this.id).emit("game timer", 0);
+
+    }
+
 
 
     playerLeft(socket) {
@@ -263,45 +270,45 @@ export default class Game {
     onPostSolve(contact, impulse) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
-    
+
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
-    
+
         let carA = null;
         let carB = null;
-    
+
         // Check if both bodies belong to players
         for (let id in this.players) {
             const player = this.players[id];
             if (bodyA === player.car.body) carA = player.car;
             if (bodyB === player.car.body) carB = player.car;
         }
-    
+
         if (carA && carB) {
             // Get the impulse magnitude from the collision
             const normalImpulse = impulse.normalImpulses[0]; // Get the first normal impulse
-    
+
             // Define a multiplier for the force effect
-            const SMASH_FORCE = 1.25; 
-    
+            const SMASH_FORCE = 1.25;
+
             // Calculate the force to apply
             const force = normalImpulse * SMASH_FORCE;
-    
+
             // Apply force in the collision direction
             const collisionNormal = contact.getWorldManifold().normal;
-    
+
             carA.body.applyLinearImpulse(
                 { x: -collisionNormal.x * force, y: -collisionNormal.y * force },
                 carA.body.getWorldCenter()
             );
-    
+
             carB.body.applyLinearImpulse(
                 { x: collisionNormal.x * force, y: collisionNormal.y * force },
                 carB.body.getWorldCenter()
             );
         }
     }
-    
+
     onEndContact(contact) {
 
     }
@@ -510,7 +517,7 @@ export default class Game {
                 } else if (player.inputs["d"] && !player.inputs["a"]) {
                     moveDir = tangentRight; // Move right
                 }
- 
+
 
 
                 // Keep mouse in same position
@@ -621,6 +628,8 @@ export default class Game {
         // ];
 
         const goalScored = (team) => {
+            this.io.to(this.id).emit("goal", team);
+
             if (this.running) {
                 this.goalScored = true;
 
@@ -648,7 +657,6 @@ export default class Game {
             createExplosion(this.world, explosionCenterBottom, explosionRadius, explosionPower);
 
             if (this.running) setTimeout(() => {
-                this.io.to(this.id).emit("goal", team);
                 this.start();
                 this.goalScored = false;
             }, 3000);

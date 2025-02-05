@@ -295,11 +295,14 @@ chatInput.addEventListener("keydown", function (e) {
                 }
             } else if (cmd === "start") {
                 socket.emit("start");
+            } else if (cmd == "end") {
+                socket.emit("end");
             } else if (cmd === "settings") {
                 chatLog.value += `
 -- [Settings] --
 Switch teams: /team <left/right>
 Start game: /start
+End game: /end
 
 Sensitivity - mouse sensitivity
 Current value: ${settings.sensitivity}
@@ -387,6 +390,19 @@ searching.style.display = "none";
 
 oneVOneBtn.addEventListener("click", (e) => {
     socket.emit("queue", "1v1");
+    buttonContainer.style.display = "none";
+    searching.style.display = null;
+});
+
+twoVTwoBtn.addEventListener("click", (e) => {
+    socket.emit("queue", "2v2");
+    buttonContainer.style.display = "none";
+    searching.style.display = null;
+});
+
+
+threeVThreeBtn.addEventListener("click", (e) => {
+    socket.emit("queue", "3v3");
     buttonContainer.style.display = "none";
     searching.style.display = null;
 });
@@ -612,9 +628,9 @@ function step() {
 
 class Renderer {
     constructor() {
-        this.currentServerState = {}; 
-        this.previousServerState = {}; 
-        this.lastServerUpdateTime = 0; 
+        this.currentServerState = {};
+        this.previousServerState = {};
+        this.lastServerUpdateTime = 0;
 
         this.updateInterval = 1000 / 60;
 
@@ -630,7 +646,7 @@ class Renderer {
 
     receiveServerState(newServerState, serverTimestamp) {
         this.previousServerState = { ...this.currentServerState };
-        
+
         for (let id in newServerState) {
             this.currentServerState[id] = {
                 ...newServerState[id],
@@ -640,7 +656,7 @@ class Renderer {
 
         let clientTime = performance.now();
         let networkLatency = clientTime - serverTimestamp;
-        let adjustedServerTime = serverTimestamp + networkLatency / 2; 
+        let adjustedServerTime = serverTimestamp + networkLatency / 2;
 
         if (this.lastServerUpdateTime) {
             let newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
@@ -687,7 +703,7 @@ class Renderer {
             const object = objects[id];
             const prevState = this.previousServerState[id];
             const currState = this.currentServerState[id];
-            
+
             if (object) {
                 if (currState.interpolate) {
                     this.interpolateObject(object, prevState, currState, alpha);

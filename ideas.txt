@@ -107,3 +107,5 @@ fix match end
 
 fix settings and no goal explosion or reset in freeplay and no score in freeplay
 
+Make 2v2 spawn positions
+Fix field warp

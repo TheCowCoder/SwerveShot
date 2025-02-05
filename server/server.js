@@ -51,7 +51,7 @@ function matchmake() {
                         );
 
                         // Update avgMMR using running average formula
-                        searchingGroup.avgMMR = 
+                        searchingGroup.avgMMR =
                             (searchingGroup.avgMMR * oldCount + sumNewMMR) / totalCount;
 
                         // Merge players
@@ -99,8 +99,8 @@ function matchMade(_players, gameMode) {
         let p2;
         [p2, _players] = chooseRandom(_players);
 
-        players[p1].game.players[p1].team = "left";
-        players[p2].game.players[p2].team = "right";
+        game.players[p1].team = "left";
+        game.players[p2].team = "right";
 
         io.to(game.id).emit("object updates", {
             [game.players[p1].car.id]: { sprite: game.players[p1].team === "left" ? "carBlue" : "carRed" },
@@ -110,7 +110,61 @@ function matchMade(_players, gameMode) {
         game.start(true);
 
     } else if (gameMode == "2v2") {
+        let p1;
+        [p1, _players] = chooseRandom(_players);
+        let p2;
+        [p2, _players] = chooseRandom(_players);
 
+        let p3;
+        [p3, _players] = chooseRandom(_players);
+        let p4;
+        [p4, _players] = chooseRandom(_players);
+
+        game.players[p1].team = "left";
+        game.players[p2].team = "left";
+        game.players[p3].team = "right";
+        game.players[p4].team = "right";
+
+        io.to(game.id).emit("object updates", {
+            [game.players[p1].car.id]: { sprite: game.players[p1].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p2].car.id]: { sprite: game.players[p2].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p3].car.id]: { sprite: game.players[p3].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p4].car.id]: { sprite: game.players[p4].team === "left" ? "carBlue" : "carRed" }
+        });
+
+    } else if (gameMode == "3v3") {
+        let p1;
+        [p1, _players] = chooseRandom(_players);
+        let p2;
+        [p2, _players] = chooseRandom(_players);
+        let p3;
+        [p3, _players] = chooseRandom(_players);
+
+        let p4;
+        [p4, _players] = chooseRandom(_players);
+        let p5;
+        [p5, _players] = chooseRandom(_players);
+        let p6;
+        [p6, _players] = chooseRandom(_players);
+
+
+        game.players[p1].team = "left";
+        game.players[p2].team = "left";
+        game.players[p3].team = "left";
+
+        game.players[p4].team = "right";
+        game.players[p5].team = "right";
+        game.players[p6].team = "right";
+
+        io.to(game.id).emit("object updates", {
+            [game.players[p1].car.id]: { sprite: game.players[p1].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p2].car.id]: { sprite: game.players[p2].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p3].car.id]: { sprite: game.players[p3].team === "left" ? "carBlue" : "carRed" },
+
+            [game.players[p4].car.id]: { sprite: game.players[p4].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p5].car.id]: { sprite: game.players[p5].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p6].car.id]: { sprite: game.players[p6].team === "left" ? "carBlue" : "carRed" },
+        });
     }
 }
 
@@ -162,6 +216,9 @@ io.on("connection", (socket) => {
     socket.on("start", () => {
         if (players[socket.id].game) players[socket.id].game.start(true);
     });
+    socket.on("end", () => {
+        if (players[socket.id].game) players[socket.id].game.end();
+    });
 
     socket.on("team", team => {
         if (!players[socket.id].game) return;
@@ -212,12 +269,12 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         console.log("A user disconnected!", socket.id);
-    
+
         // Remove player's own searching group if they were the creator
         if (queue[socket.id]) {
             let removedGroup = queue[socket.id];
             delete queue[socket.id];
-    
+
             // Create new searching groups for remaining players
             removedGroup.players.forEach(playerId => {
                 if (playerId !== socket.id) {
@@ -226,21 +283,21 @@ io.on("connection", (socket) => {
                         avgMMR: players[playerId].MMR,
                         players: [playerId],
                         playersNeeded: removedGroup.gameMode === "1v1" ? 1 :
-                                       removedGroup.gameMode === "2v2" ? 3 : 5
+                            removedGroup.gameMode === "2v2" ? 3 : 5
                     };
                 }
             });
         }
-    
+
         // Search for and remove the player from any other searching groups
         for (let creatorId in queue) {
             let searchingGroup = queue[creatorId];
-    
+
             let index = searchingGroup.players.indexOf(socket.id);
             if (index !== -1) {
                 searchingGroup.players.splice(index, 1);
                 searchingGroup.playersNeeded += 1;
-    
+
                 if (searchingGroup.players.length > 0) {
                     // Update avgMMR after removing player
                     let sumMMR = searchingGroup.players.reduce((sum, playerId) => sum + players[playerId].MMR, 0);
@@ -251,16 +308,33 @@ io.on("connection", (socket) => {
                 }
             }
         }
-    
+
         // Remove player from the players object
-    
+
         if (players[socket.id].game) players[socket.id].game.playerLeft(socket);
+
+        let playersLeft = false;
+        let playersRight = false;
+
+        for (let id in players[socket.id].game?.players) {
+            const player = players[socket.id].game.players[id];
+            if (player.team == "left") {
+                playersLeft = true;
+            } else if (player.team == "right") {
+                playersRight = true;
+            }
+        }
+
+        if (!playersLeft || !playersRight) {
+            players[socket.id].game?.end();
+
+        }
 
         delete players[socket.id];
 
         matchmake();
     });
-    
+
 });
 
 
