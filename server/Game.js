@@ -505,7 +505,7 @@ export default class Game {
             const normalImpulse = impulse.normalImpulses[0]; // Get the first normal impulse
 
             // Define a multiplier for the force effect
-            const SMASH_FORCE = 1.175;
+            const SMASH_FORCE = 1.1;
 
             // Calculate the force to apply
             const force = normalImpulse * SMASH_FORCE;
