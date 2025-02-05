@@ -130,6 +130,9 @@ export default class Game {
         this.running = false;
 
 
+        this.speedMultiplier = 0.5;
+
+
     }
 
     pauseTimer() {
@@ -702,7 +705,7 @@ export default class Game {
 
                 // Normalize the angle difference to the range [-π, π]
                 angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
-                let turnPower = 10;
+                let turnPower = 10 * this.speedMultiplier;
                 player.car.body.setAngularVelocity(angleDiff * turnPower);
 
 
@@ -753,15 +756,15 @@ export default class Game {
                     turnSpeed = this.POWERSLIDE_TURN_SPEED;
                 }
 
-                if (player.inputs["ArrowLeft"] && !player.inputs["ArrowRight"]) player.car.body.setAngularVelocity(-turnSpeed);
-                else if (player.inputs["ArrowRight"] && !player.inputs["ArrowLeft"]) player.car.body.setAngularVelocity(turnSpeed);
+                if (player.inputs["ArrowLeft"] && !player.inputs["ArrowRight"]) player.car.body.setAngularVelocity(-turnSpeed * this.speedMultiplier);
+                else if (player.inputs["ArrowRight"] && !player.inputs["ArrowLeft"]) player.car.body.setAngularVelocity(turnSpeed * this.speedMultiplier);
                 else player.car.body.setAngularVelocity(0); // Stop rotation when left or right is released
 
             }
 
             // Handle flip, boost, and drive force
             if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
-                player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE), player.car.body.getWorldCenter(), true);
+                player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE * (this.speedMultiplier * 2)), player.car.body.getWorldCenter(), true);
                 player.flip = false;
 
 
@@ -773,15 +776,15 @@ export default class Game {
                 if (player.inputs[" "] || player.inputs["mouse2"]) {
                     // Apply boost force if space is pressed
                     // player.car.body.applyForceToCenter(forward.mul(this.BOOST_FORCE));
-                    player.car.body.applyLinearImpulse(forward.mul(this.BOOST_FORCE), player.car.body.getWorldCenter(), true);
+                    player.car.body.applyLinearImpulse(forward.mul(this.BOOST_FORCE * this.speedMultiplier), player.car.body.getWorldCenter(), true);
                     player.car.boosting = true;
                     this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: true } })
                 } else {
                     // Apply normal drive force
                     if ((player.inputs["ArrowUp"] || player.inputs["w"]) && !(player.inputs["ArrowDown"] || player.inputs["s"])) {
-                        player.car.body.applyForceToCenter(forward.mul(this.DRIVE_FORCE));
+                        player.car.body.applyForceToCenter(forward.mul(this.DRIVE_FORCE * (this.speedMultiplier * 2)));
                     } else if ((player.inputs["ArrowDown"] || player.inputs["s"]) && !(player.inputs["ArrowUp"] || player.inputs["w"])) {
-                        player.car.body.applyForceToCenter(forward.mul(-this.DRIVE_FORCE));
+                        player.car.body.applyForceToCenter(forward.mul(-this.DRIVE_FORCE * (this.speedMultiplier * 2)));
                     }
                     player.car.boosting = false;
                     this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: false } })
