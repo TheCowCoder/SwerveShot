@@ -194,6 +194,16 @@ io.on("connection", (socket) => {
 
     socket.emit("your id", socket.id);
 
+
+    socket.on("chat", msg => {
+        let sender;
+        if (players[socket.id].game.players[socket.id].team == "left") {
+            sender = "Blue";
+        } else {
+            sender = "Red";
+        }
+        if (players[socket.id].game) io.to(players[socket.id].game.id).emit("chat", sender, msg)
+    });
     socket.on("queue", (gameMode) => {
         console.log("QUEUE request, gamemode", gameMode);
         console.log("Queue:", queue);

@@ -117,6 +117,9 @@ let ourId;
 let mousePos;
 let settings;
 
+socket.on("chat", (sender, msg) => {
+    chatLog.value += `${sender}: ${msg}\n`;
+});
 socket.on("match made", () => {
     inGame();
 });
@@ -344,7 +347,6 @@ const chatInput = document.getElementById("chatInput")
 const chatLog = document.getElementById("chatLog");
 
 chatLog.value += "Type /settings for settings\n";
-chatLog.value += "Type /controls for controls\n";
 
 chatInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {
@@ -353,38 +355,11 @@ chatInput.addEventListener("keydown", function (e) {
         if (msg.startsWith("/")) {
             const cmd = msg.slice(1).split(" ")[0];
             const args = msg.slice(1).split(" ").slice(1); // Extract the arguments
-
-            if (cmd === "team") {
-                if (args[0] === "left" || args[0] === "right") {
-                    socket.emit("team", args[0]);
-                }
-            } else if (cmd === "start") {
-                socket.emit("start");
-            } else if (cmd == "end") {
-                socket.emit("end");
-            } else if (cmd == "controls") {
-                chatLog.value += `
-Arrow keys = Move
-Space = Boost
-F = Flip
-Shift = Tight turn
-
-Mouse control mode:
-Click the screen to enable
-Move mouse = Aim car
-WASD = Move around
-Left click = Flip
-Right click = Boost
-                `.trim() + "\n";
-            } else if (cmd == "q") {
-                socket.emit("queue", args[0]);
-
-            }
-
-            chatLog.scrollTop = chatLog.scrollHeight;
-
+        } else {
+            socket.emit("chat", msg);
         }
 
+        chatLog.scrollTop = chatLog.scrollHeight;
         chatInput.value = "";
     }
 });
@@ -419,7 +394,7 @@ privateBtn.addEventListener("click", () => {
     document.getElementById("createRoomBtn").addEventListener("click", () => {
         socket.emit("create game", (code) => {
             chatLog.value += "The game code is " + code + "\n";
-            chatLog.value += "The game code is copied to clipboard!";
+            chatLog.value += "The game code is copied to clipboard!\n";
             copyToClipboard(code);
 
             inGame();
