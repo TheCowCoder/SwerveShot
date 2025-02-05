@@ -786,9 +786,9 @@ export default class Game {
                 } else {
                     // Apply normal drive force
                     if ((player.inputs["ArrowUp"] || player.inputs["w"]) && !(player.inputs["ArrowDown"] || player.inputs["s"])) {
-                        player.car.body.applyForceToCenter(forward.mul(this.DRIVE_FORCE * this.speedMultiplier));
+                        player.car.body.applyForceToCenter(forward.mul(this.DRIVE_FORCE));
                     } else if ((player.inputs["ArrowDown"] || player.inputs["s"]) && !(player.inputs["ArrowUp"] || player.inputs["w"])) {
-                        player.car.body.applyForceToCenter(forward.mul(-this.DRIVE_FORCE * this.speedMultiplier));
+                        player.car.body.applyForceToCenter(forward.mul(-this.DRIVE_FORCE));
                     }
                     player.car.boosting = false;
                     this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: false } })
