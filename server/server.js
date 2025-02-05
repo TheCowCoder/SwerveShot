@@ -107,7 +107,9 @@ function matchMade(_players, gameMode) {
             [game.players[p2].car.id]: { sprite: game.players[p2].team === "left" ? "carBlue" : "carRed" }
         });
 
-        game.start(true);
+        setTimeout(() => {
+            game.start(true);
+        }, 1000 * 15);
 
     } else if (gameMode == "2v2") {
         let p1;
@@ -131,6 +133,11 @@ function matchMade(_players, gameMode) {
             [game.players[p3].car.id]: { sprite: game.players[p3].team === "left" ? "carBlue" : "carRed" },
             [game.players[p4].car.id]: { sprite: game.players[p4].team === "left" ? "carBlue" : "carRed" }
         });
+
+        setTimeout(() => {
+            game.start(true);
+        }, 1000 * 15);
+
 
     } else if (gameMode == "3v3") {
         let p1;
@@ -165,6 +172,11 @@ function matchMade(_players, gameMode) {
             [game.players[p5].car.id]: { sprite: game.players[p5].team === "left" ? "carBlue" : "carRed" },
             [game.players[p6].car.id]: { sprite: game.players[p6].team === "left" ? "carBlue" : "carRed" },
         });
+
+        setTimeout(() => {
+            game.start(true);
+        }, 1000 * 15);
+
     }
 }
 
@@ -241,7 +253,7 @@ io.on("connection", (socket) => {
             if (_game.code === code) {
                 _game.playerJoined(socket);
                 players[socket.id].game = _game;
-                socket.emit("game code", game.code);
+                socket.emit("game code", players[socket.id].game.code);
             }
         }
     });
