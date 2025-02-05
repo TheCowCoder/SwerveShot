@@ -349,7 +349,6 @@ document.getElementById("leaveGame").addEventListener("click", () => {
 const chatInput = document.getElementById("chatInput")
 const chatLog = document.getElementById("chatLog");
 
-chatLog.value += "Type /settings for settings\n";
 
 chatInput.addEventListener("keydown", function (e) {
     if (e.key === "Enter") {

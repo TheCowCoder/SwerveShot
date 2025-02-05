@@ -411,7 +411,7 @@ export default class Game {
                 this.players[id].movementLocked = false;
             }
 
-            if (initial) this.remainingSeconds = 60 * 2;
+            if (initial) this.remainingSeconds = 60 * 4;
 
             this.io.to(this.id).emit("game timer", this.remainingSeconds);
             this.startTimer();
