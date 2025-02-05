@@ -311,9 +311,12 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 
     let mouseSensitivity = document.getElementById("mouseSensitivity").value;
     let mouseRange = document.getElementById("mouseRange").value;
+    let speedMultiplier = document.getElementById("speedMult").value;
+
     socket.emit("settings", {
         mouseSensitivity,
-        mouseRange
+        mouseRange,
+        speedMultiplier
     }, (result) => {
         if (result) {
             overlay.style.display = "none";

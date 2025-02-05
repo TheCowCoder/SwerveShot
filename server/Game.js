@@ -135,6 +135,10 @@ export default class Game {
 
     }
 
+    setSpeedMultiplier(smp) {
+        this.speedMultiplier = smp;
+    }
+
     pauseTimer() {
         clearInterval(this.gameTimer);
     }
@@ -764,7 +768,7 @@ export default class Game {
 
             // Handle flip, boost, and drive force
             if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
-                player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE * (this.speedMultiplier * 2)), player.car.body.getWorldCenter(), true);
+                player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE * this.speedMultiplier), player.car.body.getWorldCenter(), true);
                 player.flip = false;
 
 
@@ -782,9 +786,9 @@ export default class Game {
                 } else {
                     // Apply normal drive force
                     if ((player.inputs["ArrowUp"] || player.inputs["w"]) && !(player.inputs["ArrowDown"] || player.inputs["s"])) {
-                        player.car.body.applyForceToCenter(forward.mul(this.DRIVE_FORCE * (this.speedMultiplier * 2)));
+                        player.car.body.applyForceToCenter(forward.mul(this.DRIVE_FORCE * this.speedMultiplier));
                     } else if ((player.inputs["ArrowDown"] || player.inputs["s"]) && !(player.inputs["ArrowUp"] || player.inputs["w"])) {
-                        player.car.body.applyForceToCenter(forward.mul(-this.DRIVE_FORCE * (this.speedMultiplier * 2)));
+                        player.car.body.applyForceToCenter(forward.mul(-this.DRIVE_FORCE * this.speedMultiplier));
                     }
                     player.car.boosting = false;
                     this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: false } })

@@ -234,6 +234,9 @@ io.on("connection", (socket) => {
         }
         for (let key in settings) {
             players[socket.id].game.players[socket.id].settings[key] = settings[key];
+            if (key === "speedMultiplier") {
+                players[socket.id].game.setSpeedMultiplier(settings[key]);
+            }
         }
         cb(true);
     });
