@@ -2,40 +2,150 @@ body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    background-color: #3a9f58;
+    font-family: Arial, sans-serif;
+}
+html, body {
+    width: 100%;
+    height: 100%;
 }
 
 #gameCanvas {
     background-color: #3a9f58;
-    /* display: none; */
+    width: 100vw;
+    height: 100vh;
+    display: block;
+}
+
+#searching {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+}
+#searching div {
+    display: flex;
+    /* flex-direction: column; */
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+    font-size: 75px;
+    font-weight: bold;
+    color: #fff;
+    gap: 25px;
+}
+
+#searching span {
+    font-size: 75px;
+    font-weight: bold;
+    color: #fff;
+}
+
+.spinner {
+    width: 75px;
+    height: 75px;
+    border: 20px solid rgba(255, 255, 255, 0.3);
+    border-top: 20px solid white;
+    border-radius: 50%;
+    animation: spin 1.5s linear infinite;
+    margin-right: 8px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 #menu {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Center the content vertically */
+    align-items: center; /* Center the content horizontally */
 }
 
-#menu button {
-    display: block;
-    width: 200px;
-    padding: 15px;
-    margin: 10px auto;
-    font-size: 18px;
-    font-family: Arial, sans-serif;
-    background-color: #007BFF;
+#title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 150px;
+    color: #004404;
+    text-align: center;
+    letter-spacing: 6px;
+}
+
+#buttons {
+    margin-top: 30px;
+    margin-bottom: 100px;
+    width: 100%;
+    display: flex
+;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+}
+
+#buttons div {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    width: 100%;
+}
+
+
+
+.menu-btn {
+    width: calc(33.33% - 40px);
+    height: 150px;
+    margin-left: 20px;
+    margin-right: 20px;
+    padding: 20px;
+    font-size: 4rem;
+    font-family: 'Bangers', cursive;
+    background: transparent;
+    border: 5px solid cyan; /* Dark green border */
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    color: cyan; /* Neon cyan text */
+    text-align: center;
+    letter-spacing: 4px;
+    transform: skew(-15deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-shadow: 0 0 8px cyan; /* Glow effect */
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); /* Subtle outer glow */
+}
+
+.menu-btn span {
+    transform: skew(15deg);
+    display: inline-block;
+}
+
+.menu-btn:hover {
+    box-shadow: 0 0 20px cyan; /* More glow on hover */
+    transform: scale(1.05) skew(-15deg);
+}
+
+/* Settings Button */
+#settingsBtn {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    font-size: 2.5rem;
+    background: #444;
     color: white;
     border: none;
-    border-radius: 8px;
+    padding: 12px;
+    border-radius: 50%;
     cursor: pointer;
-    transition: background-color 0.3s ease;
+    transition: 0.2s;
 }
 
-#menu button:hover {
-    background-color: #0056b3;
+#settingsBtn:hover {
+    background: #666;
 }
 
+/* Chat Box */
 #chat {
     position: absolute;
     bottom: 10px;
@@ -47,33 +157,30 @@ body {
     width: 100%;
     padding: 7px;
     font-size: 20px;
-    border: 2px solid #000000;
+    border: 2px solid #000;
     border-radius: 5px;
     box-sizing: border-box;
-    background-color: rgb(0 0 0 / 38%);
+    background-color: rgba(0, 0, 0, 0.4);
     color: white;
     outline: none;
 }
 
-
-
 #chatLog {
-    background-color: rgb(0 0 0 / 38%);
-    border: 2px solid #000000;
+    background-color: rgba(0, 0, 0, 0.4);
+    border: 2px solid #000;
     border-radius: 5px;
     width: 100%;
     height: 100px;
     color: white;
-    outline: none;
     font-size: 14px;
-
+    outline: none;
 }
 
 #chat input::placeholder {
     color: lightgrey;
-    /* Change this to your desired color */
 }
 
+/* Countdown Timer */
 #countdown {
     position: fixed;
     top: 50%;
@@ -85,7 +192,7 @@ body {
     z-index: 1000;
 }
 
-/* Score styling */
+/* Score and Timer */
 #leftScore,
 #rightScore,
 #timer {

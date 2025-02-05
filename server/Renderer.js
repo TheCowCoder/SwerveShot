@@ -45,7 +45,7 @@ export default class Renderer {
             const now = performance.now();
             
             if (now - this.lastLogTime >= 1000) { // 1000ms = 1 second
-                console.log(`FPS: ${fps.toFixed(2)}`);
+                // console.log(`FPS: ${fps.toFixed(2)}`);
                 this.lastLogTime = now; // Update last log time
             }
 

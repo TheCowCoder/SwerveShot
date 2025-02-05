@@ -24,41 +24,158 @@ app.use("/", express.static("public"));
 
 app.use("/shared", express.static(path.join(__dirname, "../shared")));
 
+let players = {};
 
+
+let queue = {};
+
+function matchmake() {
+    let MMR_THRESHOLD = 100;
+
+    for (let creatorId in queue) {
+        let searchingGroup = queue[creatorId];
+
+        for (let otherCreatorId in queue) {
+            let otherSearchingGroup = queue[otherCreatorId];
+            if (otherSearchingGroup === searchingGroup) continue;
+
+            if (searchingGroup.gameMode === otherSearchingGroup.gameMode) {
+                if (Math.abs(searchingGroup.avgMMR - otherSearchingGroup.avgMMR) < MMR_THRESHOLD) {
+                    if (searchingGroup.playersNeeded >= otherSearchingGroup.players.length) {
+                        let oldCount = searchingGroup.players.length;
+                        let newCount = otherSearchingGroup.players.length;
+                        let totalCount = oldCount + newCount;
+
+                        let sumNewMMR = otherSearchingGroup.players.reduce(
+                            (sum, playerId) => sum + players[playerId].MMR, 0
+                        );
+
+                        // Update avgMMR using running average formula
+                        searchingGroup.avgMMR = 
+                            (searchingGroup.avgMMR * oldCount + sumNewMMR) / totalCount;
+
+                        // Merge players
+                        searchingGroup.players = searchingGroup.players.concat(otherSearchingGroup.players);
+                        searchingGroup.playersNeeded -= otherSearchingGroup.players.length;
+
+                        // Remove merged group from queue
+                        delete queue[otherCreatorId];
+
+                        if (searchingGroup.playersNeeded === 0) {
+                            console.log("Match made!", searchingGroup.players);
+                            matchMade(searchingGroup.players, searchingGroup.gameMode);
+                            // Remove the group from queue since match is made
+                            delete queue[creatorId];
+                        } else {
+                            console.log("Combined with another searchingGroup");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+function chooseRandom(array) {
+    let randomIndex = Math.floor(Math.random() * array.length);
+    let choice = array.splice(randomIndex, 1)[0];
+    return [choice, array];
+}
+function matchMade(_players, gameMode) {
+    let game = new Game(io);
+
+    for (let id of _players) {
+        const player = players[id];
+        game.playerJoined(player.socket);
+        player.game = game;
+    }
+
+    io.to(game.id).emit("match made");
+
+    if (gameMode == "1v1") {
+        let p1;
+        [p1, _players] = chooseRandom(_players);
+        let p2;
+        [p2, _players] = chooseRandom(_players);
+
+        players[p1].game.players[p1].team = "left";
+        players[p2].game.players[p2].team = "right";
+
+        io.to(game.id).emit("object updates", {
+            [game.players[p1].car.id]: { sprite: game.players[p1].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p2].car.id]: { sprite: game.players[p2].team === "left" ? "carBlue" : "carRed" }
+        });
+
+        game.start(true);
+
+    } else if (gameMode == "2v2") {
+
+    }
+}
 
 io.on("connection", (socket) => {
     console.log("A user connected!", socket.id);
 
-    let game;
+
+    players[socket.id] = {
+        id: socket.id,
+        socket: socket,
+        MMR: 0,
+        game: null
+    }
 
     socket.emit("your id", socket.id);
 
+    socket.on("queue", (gameMode) => {
+        console.log("QUEUE request, gamemode", gameMode);
+        console.log("Queue:", queue);
+
+        queue[socket.id] = {
+            gameMode,
+            avgMMR: players[socket.id].MMR,
+            players: [socket.id]
+        }
+        if (gameMode == "1v1") {
+            queue[socket.id].playersNeeded = 1;
+        } else if (gameMode == "2v2") {
+            queue[socket.id].playersNeeded = 3;
+        } else if (gameMode == "3v3") {
+            queue[socket.id].playersNeeded = 5;
+        }
+
+
+        matchmake();
+
+        console.log("After queue:", queue);
+    });
+
     socket.on("settings", settings => {
         for (let key in settings) {
-            game.players[socket.id].settings[key] = settings[key];
+            players[socket.id].game.players[socket.id].settings[key] = settings[key];
         }
     });
 
     socket.on("exit pointer lock", () => {
-        game.players[socket.id].inputs["mousePos"] = null;
+        players[socket.id].game.players[socket.id].inputs["mousePos"] = null;
     });
     socket.on("start", () => {
-        if (game) game.start(true);
+        if (players[socket.id].game) players[socket.id].game.start(true);
     });
 
     socket.on("team", team => {
-        if (!game) return;
+        if (!players[socket.id].game) return;
 
         if (team === "left" || team === "right") {
-            game.players[socket.id].team = team;
-            io.to(game.id).emit("object updates", { [game.players[socket.id].car.id]: { sprite: team === "left" ? "carBlue" : "carRed" } });
+            players[socket.id].game.players[socket.id].team = team;
+            io.to(players[socket.id].game.id).emit("object updates", { [players[socket.id].game.players[socket.id].car.id]: { sprite: team === "left" ? "carBlue" : "carRed" } });
         }
     });
 
     socket.on("create game", () => {
-        game = new Game(io);
-        game.playerJoined(socket);
-        socket.emit("game code", game.code);
+        players[socket.id].game = new Game(io);
+        players[socket.id].game.playerJoined(socket);
+        socket.emit("game code", players[socket.id].game.code);
     });
 
     socket.on("join game", code => {
@@ -66,26 +183,26 @@ io.on("connection", (socket) => {
             const _game = Game.instances[id];
             if (_game.code === code) {
                 _game.playerJoined(socket);
-                game = _game;
+                players[socket.id].game = _game;
                 socket.emit("game code", game.code);
             }
         }
     });
     socket.on("mousemove", (x, y, w, h) => {
-        if (game) game.mouseMove(socket.id, x, y, w, h);
+        if (players[socket.id].game) players[socket.id].game.mouseMove(socket.id, x, y, w, h);
 
     });
     socket.on("mousedown", (button) => {
-        if (game) game.mouseDown(socket.id, button);
+        if (players[socket.id].game) players[socket.id].game.mouseDown(socket.id, button);
     });
     socket.on("mouseup", (button) => {
-        if (game) game.mouseUp(socket.id, button);
+        if (players[socket.id].game) players[socket.id].game.mouseUp(socket.id, button);
     });
     socket.on("keydown", (key) => {
-        if (game) game.keyDown(socket.id, key);
+        if (players[socket.id].game) players[socket.id].game.keyDown(socket.id, key);
     });
     socket.on("keyup", (key) => {
-        if (game) game.keyUp(socket.id, key);
+        if (players[socket.id].game) players[socket.id].game.keyUp(socket.id, key);
     });
 
 
@@ -95,8 +212,55 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         console.log("A user disconnected!", socket.id);
-        if (game) game.playerLeft(socket);
+    
+        // Remove player's own searching group if they were the creator
+        if (queue[socket.id]) {
+            let removedGroup = queue[socket.id];
+            delete queue[socket.id];
+    
+            // Create new searching groups for remaining players
+            removedGroup.players.forEach(playerId => {
+                if (playerId !== socket.id) {
+                    queue[playerId] = {
+                        gameMode: removedGroup.gameMode,
+                        avgMMR: players[playerId].MMR,
+                        players: [playerId],
+                        playersNeeded: removedGroup.gameMode === "1v1" ? 1 :
+                                       removedGroup.gameMode === "2v2" ? 3 : 5
+                    };
+                }
+            });
+        }
+    
+        // Search for and remove the player from any other searching groups
+        for (let creatorId in queue) {
+            let searchingGroup = queue[creatorId];
+    
+            let index = searchingGroup.players.indexOf(socket.id);
+            if (index !== -1) {
+                searchingGroup.players.splice(index, 1);
+                searchingGroup.playersNeeded += 1;
+    
+                if (searchingGroup.players.length > 0) {
+                    // Update avgMMR after removing player
+                    let sumMMR = searchingGroup.players.reduce((sum, playerId) => sum + players[playerId].MMR, 0);
+                    searchingGroup.avgMMR = sumMMR / searchingGroup.players.length;
+                } else {
+                    // No players left, remove group
+                    delete queue[creatorId];
+                }
+            }
+        }
+    
+        // Remove player from the players object
+    
+        if (players[socket.id].game) players[socket.id].game.playerLeft(socket);
+
+        delete players[socket.id];
+
+        matchmake();
     });
+    
 });
 
 

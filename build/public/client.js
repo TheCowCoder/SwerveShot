@@ -259,6 +259,8 @@ document.getElementById("joinGameBtn").addEventListener("click", (e) => {
 
 });
 
+document.getElementById("gameInfo").style.display = "none";
+
 const chatInput = document.getElementById("chatInput")
 const chatLog = document.getElementById("chatLog");
 

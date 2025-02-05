@@ -1,7 +1,6 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
-canvas.style.display = "none";
 
 const CONSTANTS = window.CONSTANTS;
 
@@ -10,6 +9,7 @@ const CONSTANTS = window.CONSTANTS;
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    // renderWorld();
 }
 window.addEventListener("resize", resize);
 resize();
@@ -113,6 +113,10 @@ let ourId;
 let mousePos;
 let settings;
 
+socket.on("match made", () => {
+    inGame();
+});
+
 socket.on("settings", _settings => {
     settings = _settings;
 });
@@ -132,7 +136,7 @@ socket.on("objects added", (_objects) => {
     }
 });
 
-socket.on("object updates", (objectUpdates, timestamp) => {
+socket.on("object updates", (objectUpdates, timestamp, interpolate = true) => {
     let interpolationObjectUpdates = {};
     for (let id in objectUpdates) {
         const values = objectUpdates[id];
@@ -155,7 +159,7 @@ socket.on("object updates", (objectUpdates, timestamp) => {
         }
     }
     if (Object.keys(interpolationObjectUpdates).length) {
-        renderer.receiveServerState(interpolationObjectUpdates, timestamp);
+        renderer.receiveServerState(interpolationObjectUpdates, timestamp, interpolate);
     }
 });
 
@@ -165,9 +169,23 @@ socket.on("objects removed", (ids) => {
     }
 });
 
+
+function copyToClipboard(text) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textarea);
+    console.log("Copied to clipboard: " + text);
+}
+
+
 socket.on("game code", (code) => {
     console.log("The game code is", code);
     chatLog.value += "The game code is " + code + "\n";
+    chatLog.value += "The game code is copied to clipboard!";
+    copyToClipboard(code);
 });
 socket.on("wall vertices", (_wallVertices) => {
     wallVertices = _wallVertices;
@@ -177,12 +195,18 @@ const countdownElement = document.getElementById("countdown");
 const timerEl = document.getElementById("timer");
 
 
+socket.on("game start", () => {
+    document.getElementById("leftScore").innerText = "0";
+    document.getElementById("rightScore").innerText = "0";
+
+})
 socket.on("countdown", (countdown) => {
     countdownElement.style.display = null;
     countdownElement.textContent = countdown;
 
     if (countdown === 0) {
         countdownElement.textContent = "Go!";
+
         setTimeout(() => {
             countdownElement.style.display = "none";
         }, 1000);
@@ -199,6 +223,9 @@ socket.on("game timer", remainingSeconds => {
 
     timerEl.textContent = formatTime(remainingSeconds);
 
+    if (remainingSeconds == 0) {
+        timerEl.textContent = "";
+    }
 })
 
 socket.on("goal", team => {
@@ -219,6 +246,8 @@ socket.on("goal", team => {
 
 
 // #region Document events
+document.getElementById("game").style.display = "none";
+
 document.addEventListener('keydown', (e) => {
     if (!e.repeat) socket.emit("keydown", e.key);
 
@@ -244,20 +273,7 @@ document.addEventListener("mouseup", e => {
     socket.emit("mouseup", e.button);
 });
 
-document.getElementById("createGameBtn").addEventListener("click", (e) => {
-    socket.emit("create game");
-    document.getElementById("menu").style.display = "none";
-    canvas.style.display = null;
-});
 
-document.getElementById("joinGameBtn").addEventListener("click", (e) => {
-    let roomCode = prompt("Game code?");
-
-    socket.emit("join game", roomCode);
-    document.getElementById("menu").style.display = "none";
-    canvas.style.display = null;
-
-});
 
 const chatInput = document.getElementById("chatInput")
 const chatLog = document.getElementById("chatLog");
@@ -313,6 +329,9 @@ WASD = Move around
 Left click = Flip
 Right click = Boost
                 `.trim() + "\n";
+            } else if (cmd == "q") {
+                socket.emit("queue", args[0]);
+
             }
 
             chatLog.scrollTop = chatLog.scrollHeight;
@@ -324,6 +343,73 @@ Right click = Boost
 });
 
 
+let privateBtn = document.getElementById("privateBtn");
+let oneVOneBtn = document.getElementById("oneVOneBtn");
+let twoVTwoBtn = document.getElementById("twoVTwoBtn");
+let buttonContainer = document.getElementById("buttons");
+
+privateBtn.addEventListener("click", () => {
+    // Store original buttons
+    let originalButtons = buttonContainer.innerHTML;
+
+    // Replace buttons with "Create Room" and "Join Room"
+    buttonContainer.innerHTML = `
+        <div>
+            <button class="menu-btn" id="createRoomBtn">Create Room</button>
+            <button class="menu-btn" id="joinRoomBtn">Join Room</button>
+        </div>
+    `;
+
+
+    // Add event listeners to new buttons
+    document.getElementById("createRoomBtn").addEventListener("click", () => {
+        socket.emit("create game");
+
+        restoreButtons(originalButtons);
+
+        inGame();
+    });
+
+    document.getElementById("joinRoomBtn").addEventListener("click", () => {
+        let gameCode = prompt("Game code?");
+
+        socket.emit("join game", gameCode);
+
+        restoreButtons(originalButtons);
+        inGame();
+    });
+});
+
+
+let searching = document.getElementById("searching");
+
+searching.style.display = "none";
+
+oneVOneBtn.addEventListener("click", (e) => {
+    socket.emit("queue", "1v1");
+    buttonContainer.style.display = "none";
+    searching.style.display = null;
+});
+
+let renderer;
+
+
+function inGame() {
+    renderer = new Renderer();
+
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("game").style.display = null;
+}
+function restoreButtons(originalHTML) {
+    buttonContainer.innerHTML = originalHTML;
+
+    // Reattach the event listener to the private button
+    document.getElementById("privateBtn").addEventListener("click", () => {
+        privateBtn.click();
+    });
+}
+
+
 
 
 // #endregion
@@ -333,146 +419,22 @@ const spriteCache = {};
 
 // Render the world to the canvas
 function renderWorld() {
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Define field dimensions and scaling
+    const fieldWidth = CONSTANTS.FIELD_WIDTH * CONSTANTS.SCALE;
+    const fieldHeight = CONSTANTS.FIELD_HEIGHT * CONSTANTS.SCALE;
+    const padding = 50;
 
-    // Convert physics world coordinates to canvas coordinates (screen origin is at the center)
+    const scaleX = (canvas.width - padding * 2) / fieldWidth;
+    const scaleY = (canvas.height - padding * 2) / fieldHeight;
+    const scaleResize = Math.min(scaleX, scaleY);
+
     const offsetX = canvas.width / 2;
     const offsetY = canvas.height / 2;
 
-    if (wallVertices) {
-        // Render the field (walls) based on wallVertices
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-
-        // wallVertices should be an array of objects with x, y coordinates
-        // Example: wallVertices = [{ x: -50, y: -50 }, { x: 50, y: -50 }, { x: 50, y: 50 }, { x: -50, y: 50 }];
-
-        for (let i = 0; i < wallVertices.length; i++) {
-            const currentVertex = wallVertices[i];
-            const nextVertex = wallVertices[(i + 1) % wallVertices.length]; // Connect to the next vertex, wrapping around
-
-            const startX = offsetX + currentVertex.x * CONSTANTS.SCALE;
-            const startY = offsetY + currentVertex.y * CONSTANTS.SCALE;
-            const endX = offsetX + nextVertex.x * CONSTANTS.SCALE;
-            const endY = offsetY + nextVertex.y * CONSTANTS.SCALE;
-
-            ctx.moveTo(startX, startY);
-            ctx.lineTo(endX, endY);
-        }
-
-        ctx.stroke();
-
-    }
-
-
-
-
-
-    for (let id in objects) {
-        const object = objects[id];
-
-        if (object.type == "circle") {
-            ctx.save();
-            ctx.translate(
-                object.position.x * CONSTANTS.SCALE + offsetX,
-                object.position.y * CONSTANTS.SCALE + offsetY
-            );
-            ctx.rotate(object.angle || 0); // Rotate by object's angle, default to 0 if not set
-            // console.log(object.angle);
-            if (object.sprite) {
-                // Check if the sprite is already loaded in the cache
-                if (!spriteCache[object.sprite]) {
-                    const img = new Image();
-                    img.src = `assets/${object.sprite}.png`;
-                    spriteCache[object.sprite] = img;
-                }
-
-                const img = spriteCache[object.sprite];
-
-                // Ensure the image is loaded before trying to draw
-                if (img.complete) {
-                    const scaledRadius = object.radius * CONSTANTS.SCALE * 2;
-
-                    ctx.drawImage(
-                        img,
-                        -scaledRadius / 2,
-                        -scaledRadius / 2,
-                        scaledRadius,
-                        scaledRadius
-                    );
-                } else {
-                    console.warn(`Sprite ${object.sprite} not yet loaded.`);
-                }
-            } else {
-                // Fallback to circle rendering
-                ctx.beginPath();
-                ctx.arc(0, 0, object.radius * CONSTANTS.SCALE, 0, 2 * Math.PI);
-                ctx.fillStyle = object.color;
-                ctx.fill();
-            }
-
-            ctx.restore();
-        } else if (object.type == "rectangle") {
-            ctx.save();
-            ctx.translate(object.position.x * CONSTANTS.SCALE + offsetX, object.position.y * CONSTANTS.SCALE + offsetY);
-            ctx.rotate(object.angle);
-
-            if (object.sprite) {
-                // Check if the sprite is already loaded in the cache
-                if (!spriteCache[object.sprite]) {
-                    const img = new Image();
-                    img.src = `assets/${object.sprite}.png`;
-                    spriteCache[object.sprite] = img;
-                }
-
-                const img = spriteCache[object.sprite];
-
-                // Ensure the image is loaded before trying to draw
-                if (img.complete) {
-                    const scaledWidth = object.width * CONSTANTS.SCALE * 2;
-                    const scaledHeight = object.height * CONSTANTS.SCALE * 2;
-
-                    ctx.drawImage(img, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
-                }
-            } else {
-                // Fallback to rectangle rendering
-                ctx.fillStyle = object.color;
-                ctx.fillRect(
-                    -object.width * CONSTANTS.SCALE,
-                    -object.height * CONSTANTS.SCALE,
-                    object.width * CONSTANTS.SCALE * 2,
-                    object.height * CONSTANTS.SCALE * 2
-                );
-            }
-
-            if (object.name == "car" && object.boosting) {
-                const boosterLength = 50; // Length of the booster
-                const boosterWidth = 30; // Width of the booster
-
-                const backX = 0;
-                const backY = object.height * CONSTANTS.SCALE;
-
-                const boosterPoints = [
-                    { x: backX - boosterWidth / 2, y: backY },
-                    { x: backX + boosterWidth / 2, y: backY },
-                    { x: backX, y: backY + boosterLength },
-                ];
-
-                ctx.beginPath();
-                ctx.moveTo(boosterPoints[0].x, boosterPoints[0].y);
-                ctx.lineTo(boosterPoints[1].x, boosterPoints[1].y);
-                ctx.lineTo(boosterPoints[2].x, boosterPoints[2].y);
-                ctx.closePath();
-                ctx.fillStyle = "#f5e63d"; // Color of the booster
-                ctx.fill();
-            }
-
-            ctx.restore();
-        }
-    }
+    renderWalls(offsetX, offsetY, scaleResize);
+    renderObjects(offsetX, offsetY, scaleResize);
 
     if (mousePos) {
         for (let id in objects) {
@@ -480,170 +442,179 @@ function renderWorld() {
             if (object.socketId == ourId) {
                 // Draw a small red dot
                 ctx.beginPath();
-                ctx.arc(mousePos.x + (canvas.width / 2) + (object.position.x * CONSTANTS.SCALE), mousePos.y + (canvas.height / 2) + (object.position.y * CONSTANTS.SCALE), 7.5, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
+                ctx.arc(mousePos.x + (canvas.width / 2) + (object.position.x * CONSTANTS.SCALE * scaleResize), mousePos.y + (canvas.height / 2) + (object.position.y * CONSTANTS.SCALE * scaleResize), 7.5, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
                 ctx.fillStyle = "#4bff3b";
                 ctx.fill();
                 ctx.closePath();
             }
         }
     }
+}
+function renderWalls(offsetX, offsetY, scaleResize) {
+    if (!wallVertices) return;
 
-    // git remote set-url origin https://<your-username>@github.com/TheCowCoder/SwerveShot.git
+    const lineWidth = 20 * scaleResize;
+    const offsetAmount = -lineWidth / 2; // Half of the stroke width
+
+    ctx.strokeStyle = "#004404";
+    ctx.lineWidth = lineWidth;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+
+    let offsetVertices = [];
+
+    // Compute outward offset for each vertex
+    wallVertices.forEach((vertex, i) => {
+        const prevVertex = wallVertices[(i - 1 + wallVertices.length) % wallVertices.length];
+        const nextVertex = wallVertices[(i + 1) % wallVertices.length];
+
+        // Edge vectors
+        const edge1 = { x: vertex.x - prevVertex.x, y: vertex.y - prevVertex.y };
+        const edge2 = { x: nextVertex.x - vertex.x, y: nextVertex.y - vertex.y };
+
+        // Normalize and get perpendicular outward direction
+        const norm1 = { x: -edge1.y, y: edge1.x };
+        const norm2 = { x: -edge2.y, y: edge2.x };
+        const len1 = Math.hypot(norm1.x, norm1.y);
+        const len2 = Math.hypot(norm2.x, norm2.y);
+
+        if (len1 > 0) { norm1.x /= len1; norm1.y /= len1; }
+        if (len2 > 0) { norm2.x /= len2; norm2.y /= len2; }
+
+        // Average the two normals, but use a weight to smooth the corner more subtly
+        const angleBetween = Math.atan2(edge2.y, edge2.x) - Math.atan2(edge1.y, edge1.x);
+        const angleWeight = Math.abs(angleBetween) < Math.PI / 2 ? 1 : 0.5; // Adjust weight based on the angle
+
+        const avgNorm = {
+            x: (norm1.x + norm2.x) * angleWeight,
+            y: (norm1.y + norm2.y) * angleWeight
+        };
+
+        const avgLen = Math.hypot(avgNorm.x, avgNorm.y);
+        if (avgLen > 0) { avgNorm.x /= avgLen; avgNorm.y /= avgLen; }
+
+        // Apply the outward offset (account for scale)
+        const offsetVertex = {
+            x: vertex.x + avgNorm.x * offsetAmount / CONSTANTS.SCALE * scaleResize,
+            y: vertex.y + avgNorm.y * offsetAmount / CONSTANTS.SCALE * scaleResize
+        };
+
+        offsetVertices.push(offsetVertex);
+    });
+
+    // Draw the path using offset vertices
+    offsetVertices.forEach((vertex, i) => {
+        const nextVertex = offsetVertices[(i + 1) % offsetVertices.length];
+
+        // Convert field coordinates to screen space
+        const x1 = offsetX + vertex.x * CONSTANTS.SCALE * scaleResize;
+        const y1 = offsetY + vertex.y * CONSTANTS.SCALE * scaleResize;
+        const x2 = offsetX + nextVertex.x * CONSTANTS.SCALE * scaleResize;
+        const y2 = offsetY + nextVertex.y * CONSTANTS.SCALE * scaleResize;
+
+        if (i === 0) ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+    });
+
+    ctx.closePath();
+    ctx.stroke();
+}
 
 
 
-    // Draw boost effect (red circle at the rear of the car)
-    // if (playerInputs.boost) {
-    //     let carAngle = car.getAngle() + Math.PI / 2;
-    //     const backward = Vec2(Math.cos(carAngle), Math.sin(carAngle));
-    //     const boostPos = car.getPosition().add(backward.mul(CAR_HEIGHT / 2)); // Position at the rear of the car
-    //     ctx.beginPath();
-    //     ctx.arc(boostPos.x * SCALE + offsetX, boostPos.y * SCALE + offsetY, 0.5 * SCALE, 0, 2 * Math.PI); // Small circle for boost effect
-    //     ctx.fillStyle = "red";
-    //     ctx.fill();
-    // }
+function renderObjects(offsetX, offsetY, scaleResize) {
+    for (let id in objects) {
+        const object = objects[id];
+
+        ctx.save();
+        ctx.translate(
+            object.position.x * CONSTANTS.SCALE * scaleResize + offsetX,
+            object.position.y * CONSTANTS.SCALE * scaleResize + offsetY
+        );
+        ctx.rotate(object.angle || 0);
+
+        if (object.type === "circle" || object.type === "ball") {
+            renderCircle(object, scaleResize);
+        } else if (object.type === "rectangle" || object.type === "car") {
+            renderRectangle(object, scaleResize);
+        }
+        if (object.name == "car" && object.boosting) {
+            renderBooster(object, scaleResize);
+        }
+
+        ctx.restore();
+    }
+}
+
+function renderBooster(car, scaleResize) {
+    const boosterLength = 50; // Length of the booster
+    const boosterWidth = 30; // Width of the booster
+
+    const backX = 0;
+    const backY = car.height * CONSTANTS.SCALE * scaleResize;
+
+    const boosterPoints = [
+        { x: backX - boosterWidth / 2, y: backY },
+        { x: backX + boosterWidth / 2, y: backY },
+        { x: backX, y: backY + boosterLength },
+    ];
+
+    ctx.beginPath();
+    ctx.moveTo(boosterPoints[0].x, boosterPoints[0].y);
+    ctx.lineTo(boosterPoints[1].x, boosterPoints[1].y);
+    ctx.lineTo(boosterPoints[2].x, boosterPoints[2].y);
+    ctx.closePath();
+    ctx.fillStyle = "#f5e63d"; // Color of the booster
+    ctx.fill();
+}
+function renderCircle(object, scaleResize) {
+    if (object.sprite) {
+        drawSprite(object, object.radius * 2 * CONSTANTS.SCALE * scaleResize);
+    } else {
+        ctx.beginPath();
+        ctx.arc(0, 0, object.radius * CONSTANTS.SCALE * scaleResize, 0, 2 * Math.PI);
+        ctx.fillStyle = object.color;
+        ctx.fill();
+    }
+}
+
+function renderRectangle(object, scaleResize) {
+    if (object.sprite) {
+        drawSprite(object, object.width * 2 * CONSTANTS.SCALE * scaleResize, object.height * 2 * CONSTANTS.SCALE * scaleResize);
+    } else {
+        ctx.fillStyle = object.color;
+        ctx.fillRect(
+            -object.width * CONSTANTS.SCALE * scaleResize,
+            -object.height * CONSTANTS.SCALE * scaleResize,
+            object.width * CONSTANTS.SCALE * scaleResize * 2,
+            object.height * CONSTANTS.SCALE * scaleResize * 2
+        );
+    }
+}
+
+function drawSprite(object, width, height = width) {
+    if (!spriteCache[object.sprite]) {
+        const img = new Image();
+        img.src = `assets/${object.sprite}.png`;
+        spriteCache[object.sprite] = img;
+    }
+    const img = spriteCache[object.sprite];
+    if (img.complete) {
+        ctx.drawImage(img, -width / 2, -height / 2, width, height);
+    }
 }
 
 function step() {
     renderWorld();
 }
 
-// class Renderer {
-//     constructor() {
-//         this.serverDt = 1 / 10;
-//         this.elapsedTime = 0;
-//         this.serverAccumulator = 0;
-
-//         this.currentTime = performance.now();
-
-//         this.lastServerState = {};
-//         this.currentServerState = {};
-
-//         this.animate = this.animate.bind(this);
-//         this.animate(performance.now());
-
-//         this.frameCount = 0;
-//         this.lastFrameTime = performance.now();
-//         this.fps = 0;
-//     }
-
-//     receiveServerState(serverState) {
-//         this.lastServerState = { ...this.currentServerState };
-//         this.currentServerState = {};
-
-//         for (let id in serverState) {
-//             const newObject = serverState[id];
-//             const lastObject = this.lastServerState[id];
-
-//             // Snap to new position if the change is too large
-//             if (
-//                 lastObject &&
-//                 newObject.position &&
-//                 lastObject.position &&
-//                 (Math.abs(newObject.position.x - lastObject.position.x) > 5 || // Threshold for snapping
-//                     Math.abs(newObject.position.y - lastObject.position.y) > 5)
-//             ) {
-//                 this.lastServerState[id] = { ...newObject }; // Treat this as the new "last state"
-//             }
-
-//             this.currentServerState[id] = newObject;
-//         }
-
-//         // Reset accumulator to avoid drift
-//         this.serverAccumulator = Math.min(this.serverAccumulator, this.serverDt);
-//     }
-
-
-//     interpolatePosition(lastPosition, currentPosition, alpha) {
-//         if (!lastPosition || !currentPosition) return currentPosition || lastPosition;
-//         return {
-//             x: lastPosition.x * (1 - alpha) + currentPosition.x * alpha,
-//             y: lastPosition.y * (1 - alpha) + currentPosition.y * alpha,
-//         };
-//     }
-
-//     interpolateAngle(lastAngle, currentAngle, alpha) {
-//         if (lastAngle === undefined || currentAngle === undefined) return currentAngle || lastAngle;
-
-//         const deltaAngle = ((currentAngle - lastAngle + Math.PI) % (2 * Math.PI)) - Math.PI;
-//         return lastAngle + deltaAngle * alpha;
-//     }
-
-//     interpolate() {
-//         let interpolatedStates = {};
-//         const alpha = Math.max(0, Math.min(this.serverAccumulator / this.serverDt, 1)); // Ensure alpha is between 0 and 1
-
-//         for (let id in this.currentServerState) {
-//             const current = this.currentServerState[id];
-//             const last = this.lastServerState[id] || { ...current }; // Use current as fallback
-
-//             interpolatedStates[id] = {
-//                 position: this.interpolatePosition(last.position, current.position, alpha),
-//                 angle: this.interpolateAngle(last.angle, current.angle, alpha),
-//             };
-//         }
-
-//         return interpolatedStates;
-//     }
-
-//     animate() {
-//         const newTime = performance.now();
-//         let frameTime = (newTime - this.currentTime) / 1000;
-
-//         // Cap frame time to prevent large jumps
-//         if (frameTime > 0.25) frameTime = 0.25;
-//         this.currentTime = newTime;
-//         this.serverAccumulator += frameTime;
-
-//         // Process fixed server updates
-//         while (this.serverAccumulator >= this.serverDt) {
-//             this.serverAccumulator -= this.serverDt;
-//         }
-
-//         // Perform interpolation
-//         const interpolatedStates = this.interpolate();
-//         for (let id in interpolatedStates) {
-//             const { position, angle } = interpolatedStates[id];
-//             const object = objects[id];
-
-//             if (position) object.position = position;
-//             if (angle !== undefined) object.angle = angle;
-//         }
-
-//         // for (let id in this.currentServerState) {
-//         //     const { position, angle } = this.currentServerState[id];
-//         //     const object = objects[id];
-
-//         //     if (position) object.position = position;
-//         //     if (angle !== undefined) object.angle = angle;
-//         // }
-
-//         // FPS calculation
-//         this.frameCount++;
-//         if (newTime - this.lastFrameTime >= 1000) {
-//             this.fps = this.frameCount;
-//             this.frameCount = 0;
-//             this.lastFrameTime = newTime;
-//         }
-
-//         // Render and display FPS
-//         step();
-
-//         ctx.fillStyle = 'black';
-//         ctx.font = '16px Arial';
-//         ctx.fillText(`FPS: ${this.fps}`, 10, 20);
-
-//         requestAnimationFrame(this.animate);
-//     }
-// }
-
-// const renderer = new Renderer();
-
 class Renderer {
     constructor() {
-        this.currentServerState = {}; // Most recent server state from server
-        this.previousServerState = {}; // Previous server state from server
-        this.lastServerUpdateTime = 0; // Time of the previous server update
+        this.currentServerState = {}; 
+        this.previousServerState = {}; 
+        this.lastServerUpdateTime = 0; 
 
         this.updateInterval = 1000 / 60;
 
@@ -652,7 +623,6 @@ class Renderer {
 
         this.FPS = 0;
         this.lastFPSUpdate = 0;
-
         this.lastServerFPSUpdate = 0;
 
         this.animate(this.lastFrameTime);
@@ -660,44 +630,40 @@ class Renderer {
 
     receiveServerState(newServerState, serverTimestamp) {
         this.previousServerState = { ...this.currentServerState };
-        this.currentServerState = { ...newServerState };
-    
-        let clientTime = performance.now(); 
-        let networkLatency = clientTime - serverTimestamp; 
-        let adjustedServerTime = serverTimestamp + networkLatency / 2; // Adjust the server time for latency
-    
+        
+        for (let id in newServerState) {
+            this.currentServerState[id] = {
+                ...newServerState[id],
+                interpolate: newServerState[id].interpolate !== undefined ? newServerState[id].interpolate : true // Default to true if not specified
+            };
+        }
+
+        let clientTime = performance.now();
+        let networkLatency = clientTime - serverTimestamp;
+        let adjustedServerTime = serverTimestamp + networkLatency / 2; 
+
         if (this.lastServerUpdateTime) {
             let newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
-            
-            // Stabilize update interval to avoid extreme fluctuations
             this.updateInterval = this.smoothUpdateInterval(newUpdateInterval);
 
             if (performance.now() - this.lastServerFPSUpdate >= 1000) {
                 console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
-
                 this.lastServerFPSUpdate = performance.now();
             }
-
         }
-    
+
         this.lastServerUpdateTime = adjustedServerTime;
     }
-    
-    // Function to smooth the update interval calculation
+
     smoothUpdateInterval(newInterval) {
-        // Use a smoothing factor to make the update interval more stable
-        const smoothingFactor = 0.1; // Adjust this value for more/less smoothing
+        const smoothingFactor = 0.1;
         this.smoothedInterval = this.smoothedInterval !== undefined ? (this.smoothedInterval * (1 - smoothingFactor)) + (newInterval * smoothingFactor) : newInterval;
         return this.smoothedInterval;
     }
 
-        
-    
-
     interpolateObject(object, prevState, currState, alpha) {
         if (!prevState || !currState) return;
 
-        // Interpolate position
         if (prevState.position && currState.position) {
             object.position = {
                 x: prevState.position.x + alpha * (currState.position.x - prevState.position.x),
@@ -705,7 +671,6 @@ class Renderer {
             };
         }
 
-        // Interpolate angle
         if (prevState.angle !== undefined && currState.angle !== undefined) {
             object.angle = prevState.angle + alpha * (currState.angle - prevState.angle);
         }
@@ -714,42 +679,41 @@ class Renderer {
     animate(frameTime) {
         const deltaTime = frameTime - this.lastFrameTime;
         this.lastFrameTime = frameTime;
-    
-        // Use a stable updateInterval based on the server's time adjustment
+
         const timeSinceUpdate = Date.now() - this.lastServerUpdateTime;
-        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1); // Ensure alpha is between 0 and 1
-    
-        // Interpolate objects smoothly based on the time elapsed
+        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1);
+
         for (let id in this.currentServerState) {
             const object = objects[id];
             const prevState = this.previousServerState[id];
             const currState = this.currentServerState[id];
-    
+            
             if (object) {
-                this.interpolateObject(object, prevState, currState, alpha);
+                if (currState.interpolate) {
+                    this.interpolateObject(object, prevState, currState, alpha);
+                } else {
+                    object.position = currState.position;
+                    object.angle = currState.angle;
+                }
             }
         }
-    
-        // Step function for any additional game logic or physics updates
+
         step(deltaTime);
-    
-        // Calculate and log FPS in a stable manner
+
         if (performance.now() - this.lastFPSUpdate >= 1000) {
             this.FPS = 1000 / deltaTime;
             this.lastFPSUpdate = performance.now();
         }
-    
+
         ctx.font = "20px Arial";
         ctx.fillStyle = "black";
         ctx.fillText(`FPS: ${Math.round(this.FPS)}`, 10, 30);
-    
+
         requestAnimationFrame(this.animate);
     }
-    
 
-    
     step(deltaTime) {
-        // Add game logic or physics updates here if needed
+        // Additional game logic or physics updates
     }
 }
-const renderer = new Renderer();
+

@@ -85,3 +85,25 @@ Add race maps
 - maybe add limited boost
 - add timer to race for speedrun
 - have to make first person for race
+
+
+TODO NEXT:
+Make queue backend: DONE
+make home screen with settings, gamemodes
+- no login for first launch, so everyone has 0 MMR
+- make games restartable
+
+make bots
+
+make speedruns/races
+
+make cars bump eachother harder DONE
+make flip recharge DONE
+
+canvas scale resizing
+
+fix interpolation bugs DONE
+fix match end
+
+fix settings and no goal explosion or reset in freeplay and no score in freeplay
+
