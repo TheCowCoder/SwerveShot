@@ -20,13 +20,17 @@ canvas.addEventListener('click', () => {
     canvas.requestPointerLock();
 });
 
+let exittingPointerLock = false;
 document.addEventListener('pointerlockchange', () => {
     if (document.pointerLockElement === canvas) {
         console.log('Pointer lock enabled on canvas');
     } else {
         console.log('Pointer lock exited');
+        exittingPointerLock = true;
         mousePos = null;
-        socket.emit("exit pointer lock");
+        socket.emit("exit pointer lock", () => {
+            exittingPointerLock = false;
+        });
     }
 });
 
@@ -125,7 +129,7 @@ socket.on("your id", id => {
     ourId = id;
 })
 socket.on("mouse pos", pos => {
-    mousePos = Vec2(pos);
+    if (!exittingPointerLock) mousePos = Vec2(pos);
 });
 
 
@@ -164,6 +168,7 @@ socket.on("object updates", (objectUpdates, timestamp, interpolate = true) => {
 });
 
 socket.on("objects removed", (ids) => {
+    if (!objects) return;
     for (let id of ids) {
         delete objects[id];
     }
@@ -181,14 +186,11 @@ function copyToClipboard(text) {
 }
 
 
-socket.on("game code", (code) => {
-    console.log("The game code is", code);
-    chatLog.value += "The game code is " + code + "\n";
-    chatLog.value += "The game code is copied to clipboard!";
-    copyToClipboard(code);
-});
 socket.on("wall vertices", (_wallVertices) => {
-    wallVertices = _wallVertices;
+    wallVertices = [];
+    for (let v of _wallVertices) {
+        wallVertices.push(new Vec2(v));
+    }
 });
 
 const countdownElement = document.getElementById("countdown");
@@ -201,6 +203,7 @@ socket.on("game start", () => {
 
 })
 socket.on("countdown", (countdown) => {
+    console.log("CD");
     countdownElement.style.display = null;
     countdownElement.textContent = countdown;
 
@@ -223,9 +226,6 @@ socket.on("game timer", remainingSeconds => {
 
     timerEl.textContent = formatTime(remainingSeconds);
 
-    if (remainingSeconds == 0) {
-        timerEl.textContent = "";
-    }
 })
 
 socket.on("goal", team => {
@@ -250,7 +250,9 @@ document.getElementById("game").style.display = "none";
 
 document.addEventListener('keydown', (e) => {
     if (!e.repeat) socket.emit("keydown", e.key);
-
+    if (e.key === "Escape") {
+        customScale = false;
+    }
 });
 
 document.addEventListener('keyup', (e) => {
@@ -258,7 +260,7 @@ document.addEventListener('keyup', (e) => {
 });
 
 document.addEventListener('mousemove', (event) => {
-    if (document.pointerLockElement === canvas) {
+    if (document.pointerLockElement === canvas && !exittingPointerLock) {
         socket.emit("mousemove", event.movementX, event.movementY);
     }
 
@@ -274,6 +276,69 @@ document.addEventListener("mouseup", e => {
 });
 
 
+document.addEventListener("wheel", (e) => {
+    if (!wallVertices) return;
+    customScale = true;
+    scaleBtn.style.display = null;
+
+    // Adjust multiplier based on the scroll direction and distance
+    scaleResize += e.deltaY * 0.00025;  // Multiply by a small value to control the effect
+    console.log(scaleResize);  // Output the new multiplier to check the result
+
+    // Prevent the default scroll behavior (optional)
+    e.preventDefault();
+});
+
+let settingsBtn = document.getElementById("settingsBtn");
+let overlay = document.getElementById("overlay");
+let closeBtn = document.getElementById("closeBtn");
+
+settingsBtn.addEventListener("click", () => {
+    console.log("visuble");
+    overlay.style.display = "flex"; // Show overlay
+});
+
+closeBtn.addEventListener("click", () => {
+    overlay.style.display = "none"; // Hide overlay
+});
+
+document.getElementById("saveBtn").addEventListener("click", () => {
+    let team = document.getElementById("team").value;
+    socket.emit("team", team);
+
+    let mouseSensitivity = document.getElementById("mouseSensitivity").value;
+    let mouseRange = document.getElementById("mouseRange").value;
+    socket.emit("settings", {
+        mouseSensitivity,
+        mouseRange
+    }, (result) => {
+        if (result) {
+            overlay.style.display = "none";
+
+        } else {
+            alert("Join a game before setting settings!");
+        }
+    });
+});
+
+document.getElementById("startGame").addEventListener("click", () => {
+    socket.emit("start");
+    overlay.style.display = "none";
+});
+document.getElementById("endGame").addEventListener("click", () => {
+    socket.emit("end");
+    overlay.style.display = "none";
+})
+
+document.getElementById("leaveGame").addEventListener("click", () => {
+    overlay.style.display = "none";
+    socket.emit("leave game");
+
+    document.getElementById("menu").style.display = null;
+    document.getElementById("game").style.display = "none";
+    objects = {};
+    wallVertices = null;
+});
 
 const chatInput = document.getElementById("chatInput")
 const chatLog = document.getElementById("chatLog");
@@ -297,27 +362,6 @@ chatInput.addEventListener("keydown", function (e) {
                 socket.emit("start");
             } else if (cmd == "end") {
                 socket.emit("end");
-            } else if (cmd === "settings") {
-                chatLog.value += `
--- [Settings] --
-Switch teams: /team <left/right>
-Start game: /start
-End game: /end
-
-Sensitivity - mouse sensitivity
-Current value: ${settings.sensitivity}
-Set: /sensitivity <number>
-
-Mouse range - how far the mouse can travel from the car
-Current value: ${settings.mouseRange}
-Set: /mouseRange <number>
-                `.trim() + "\n";
-            } else if (cmd == "sensitivity") {
-                socket.emit("settings", { sensitivity: parseFloat(args[0]) });
-                chatLog.value += "Sensitivity set!\n";
-            } else if (cmd == "mouseRange") {
-                socket.emit("settings", { mouseRange: parseFloat(args[0]) });
-                chatLog.value += "Mouse range set!\n";
             } else if (cmd == "controls") {
                 chatLog.value += `
 Arrow keys = Move
@@ -345,6 +389,13 @@ Right click = Boost
     }
 });
 
+let scaleBtn = document.getElementById("scaleBtn");
+scaleBtn.style.display = "none";
+
+scaleBtn.addEventListener("click", () => {
+    customScale = false;
+    scaleBtn.style.display = "none";
+});
 
 let privateBtn = document.getElementById("privateBtn");
 let oneVOneBtn = document.getElementById("oneVOneBtn");
@@ -366,7 +417,13 @@ privateBtn.addEventListener("click", () => {
 
     // Add event listeners to new buttons
     document.getElementById("createRoomBtn").addEventListener("click", () => {
-        socket.emit("create game");
+        socket.emit("create game", (code) => {
+            chatLog.value += "The game code is " + code + "\n";
+            chatLog.value += "The game code is copied to clipboard!";
+            copyToClipboard(code);
+
+            inGame();
+        });
 
         restoreButtons(originalButtons);
 
@@ -376,10 +433,19 @@ privateBtn.addEventListener("click", () => {
     document.getElementById("joinRoomBtn").addEventListener("click", () => {
         let gameCode = prompt("Game code?");
 
-        socket.emit("join game", gameCode);
+        socket.emit("join game", gameCode, (code) => {
+            if (code !== false) {
+                chatLog.value += "The game code is " + code + "\n";
+                chatLog.value += "The game code is copied to clipboard!";
+                copyToClipboard(code);
+                inGame();
+            } else {
+                alert("Couldn't find game!");
+            }
+        });
 
         restoreButtons(originalButtons);
-        inGame();
+
     });
 });
 
@@ -411,10 +477,14 @@ let renderer;
 
 
 function inGame() {
+
     renderer = new Renderer();
 
     document.getElementById("menu").style.display = "none";
     document.getElementById("game").style.display = null;
+
+    buttonContainer.style.display = null;
+    searching.style.display = "none";
 }
 function restoreButtons(originalHTML) {
     buttonContainer.innerHTML = originalHTML;
@@ -432,7 +502,8 @@ function restoreButtons(originalHTML) {
 
 
 const spriteCache = {};
-
+let scaleResize;
+let customScale = false;
 // Render the world to the canvas
 function renderWorld() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -444,7 +515,7 @@ function renderWorld() {
 
     const scaleX = (canvas.width - padding * 2) / fieldWidth;
     const scaleY = (canvas.height - padding * 2) / fieldHeight;
-    const scaleResize = Math.min(scaleX, scaleY);
+    if (!customScale) scaleResize = Math.min(scaleX, scaleY);
 
     const offsetX = canvas.width / 2;
     const offsetY = canvas.height / 2;
@@ -470,7 +541,7 @@ function renderWalls(offsetX, offsetY, scaleResize) {
     if (!wallVertices) return;
 
     const lineWidth = 20 * scaleResize;
-    const offsetAmount = -lineWidth / 2; // Half of the stroke width
+    const offsetAmount = (-lineWidth / 2) / (CONSTANTS.SCALE * scaleResize);
 
     ctx.strokeStyle = "#004404";
     ctx.lineWidth = lineWidth;
@@ -481,46 +552,23 @@ function renderWalls(offsetX, offsetY, scaleResize) {
 
     let offsetVertices = [];
 
-    // Compute outward offset for each vertex
-    wallVertices.forEach((vertex, i) => {
-        const prevVertex = wallVertices[(i - 1 + wallVertices.length) % wallVertices.length];
-        const nextVertex = wallVertices[(i + 1) % wallVertices.length];
+    for (let i = 0; i < wallVertices.length; i++) {
+        const curr = wallVertices[i];
+        const next = wallVertices[(i + 1) % wallVertices.length];
 
-        // Edge vectors
-        const edge1 = { x: vertex.x - prevVertex.x, y: vertex.y - prevVertex.y };
-        const edge2 = { x: nextVertex.x - vertex.x, y: nextVertex.y - vertex.y };
+        // Compute edge vector
+        const edge = next.clone().sub(curr);
+        const edgeNormal = new Vec2(-edge.y, edge.x).normalize(); // Perpendicular normal
 
-        // Normalize and get perpendicular outward direction
-        const norm1 = { x: -edge1.y, y: edge1.x };
-        const norm2 = { x: -edge2.y, y: edge2.x };
-        const len1 = Math.hypot(norm1.x, norm1.y);
-        const len2 = Math.hypot(norm2.x, norm2.y);
+        // Shift vertex by average of surrounding edge normals
+        const prev = wallVertices[(i - 1 + wallVertices.length) % wallVertices.length];
+        const prevEdge = curr.clone().sub(prev);
+        const prevEdgeNormal = new Vec2(-prevEdge.y, prevEdge.x).normalize();
 
-        if (len1 > 0) { norm1.x /= len1; norm1.y /= len1; }
-        if (len2 > 0) { norm2.x /= len2; norm2.y /= len2; }
+        const avgNormal = prevEdgeNormal.add(edgeNormal).normalize();
+        offsetVertices.push(curr.clone().add(avgNormal.mul(offsetAmount)));
+    }
 
-        // Average the two normals, but use a weight to smooth the corner more subtly
-        const angleBetween = Math.atan2(edge2.y, edge2.x) - Math.atan2(edge1.y, edge1.x);
-        const angleWeight = Math.abs(angleBetween) < Math.PI / 2 ? 1 : 0.5; // Adjust weight based on the angle
-
-        const avgNorm = {
-            x: (norm1.x + norm2.x) * angleWeight,
-            y: (norm1.y + norm2.y) * angleWeight
-        };
-
-        const avgLen = Math.hypot(avgNorm.x, avgNorm.y);
-        if (avgLen > 0) { avgNorm.x /= avgLen; avgNorm.y /= avgLen; }
-
-        // Apply the outward offset (account for scale)
-        const offsetVertex = {
-            x: vertex.x + avgNorm.x * offsetAmount / CONSTANTS.SCALE * scaleResize,
-            y: vertex.y + avgNorm.y * offsetAmount / CONSTANTS.SCALE * scaleResize
-        };
-
-        offsetVertices.push(offsetVertex);
-    });
-
-    // Draw the path using offset vertices
     offsetVertices.forEach((vertex, i) => {
         const nextVertex = offsetVertices[(i + 1) % offsetVertices.length];
 
@@ -537,7 +585,6 @@ function renderWalls(offsetX, offsetY, scaleResize) {
     ctx.closePath();
     ctx.stroke();
 }
-
 
 
 function renderObjects(offsetX, offsetY, scaleResize) {
@@ -565,8 +612,8 @@ function renderObjects(offsetX, offsetY, scaleResize) {
 }
 
 function renderBooster(car, scaleResize) {
-    const boosterLength = 50; // Length of the booster
-    const boosterWidth = 30; // Width of the booster
+    const boosterLength = 50 * scaleResize; // Length of the booster
+    const boosterWidth = 30 * scaleResize; // Width of the booster
 
     const backX = 0;
     const backY = car.height * CONSTANTS.SCALE * scaleResize;
@@ -700,6 +747,7 @@ class Renderer {
         const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1);
 
         for (let id in this.currentServerState) {
+            if (!objects) continue;
             const object = objects[id];
             const prevState = this.previousServerState[id];
             const currState = this.currentServerState[id];

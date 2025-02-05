@@ -1,3 +1,149 @@
+.setting div {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+label,
+small {
+    width: 160px;
+    margin-right: 10px;
+}
+
+small {
+    display: block;
+    /* Makes it wrap to the next line */
+}
+
+#saveBtn {
+    position: absolute;
+    right: 20px;
+    bottom: 20px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+}
+
+
+.settings-container button {
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    /* margin-right: 10px; */
+}
+
+.setting button {
+    margin-right: 10px;
+
+}
+
+/* Specific button styles */
+.settings-container .start-btn {
+    background-color: #4CAF50;
+    /* Green */
+    color: white;
+}
+
+.settings-container .end-btn {
+    background-color: #f44336;
+    /* Red */
+    color: white;
+}
+
+
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(5px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+
+.setting>div {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Settings container */
+.settings-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    min-width: 400px;
+    text-align: left;
+    max-width: 600px;
+    position: relative;
+    height: 600px;
+    overflow-y: scroll;
+}
+
+.settings-container h2 {
+    font-size: 30px;
+}
+
+/* Category and Setting Styles */
+.category {
+    margin-bottom: 30px;
+}
+
+.category h3 {
+    margin-top: 0;
+    font-size: 24px;
+}
+
+.setting {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.setting label {
+    width: 180px;
+    margin-right: 10px;
+}
+
+.setting select,
+.setting input {
+    padding: 8px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    width: 150px;
+}
+
+.setting small {
+    font-size: 12px;
+    color: #888;
+}
+
+#closeBtn {
+    background-color: #ff9f98;
+    color: #000000;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+
+
+
+
 body {
     margin: 0;
     padding: 0;
@@ -5,7 +151,9 @@ body {
     background-color: #3a9f58;
     font-family: Arial, sans-serif;
 }
-html, body {
+
+html,
+body {
     width: 100%;
     height: 100%;
 }
@@ -23,6 +171,7 @@ html, body {
     align-items: center;
     gap: 25px;
 }
+
 #searching div {
     display: flex;
     /* flex-direction: column; */
@@ -52,16 +201,23 @@ html, body {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 #menu {
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center; /* Center the content vertically */
-    align-items: center; /* Center the content horizontally */
+    justify-content: center;
+    /* Center the content vertically */
+    align-items: center;
+    /* Center the content horizontally */
 }
 
 #title {
@@ -76,8 +232,7 @@ html, body {
     margin-top: 30px;
     margin-bottom: 100px;
     width: 90%;
-    display: flex
-;
+    display: flex;
     flex-direction: column;
     align-items: center;
     gap: 30px;
@@ -101,19 +256,23 @@ html, body {
     font-size: 4rem;
     font-family: 'Bangers', cursive;
     background: transparent;
-    border: 5px solid cyan; /* Dark green border */
+    border: 5px solid cyan;
+    /* Dark green border */
     border-radius: 10px;
     cursor: pointer;
     transition: 0.2s;
-    color: cyan; /* Neon cyan text */
+    color: cyan;
+    /* Neon cyan text */
     text-align: center;
     letter-spacing: 4px;
     transform: skew(-15deg);
     display: flex;
     align-items: center;
     justify-content: center;
-    text-shadow: 0 0 8px cyan; /* Glow effect */
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5); /* Subtle outer glow */
+    text-shadow: 0 0 8px cyan;
+    /* Glow effect */
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    /* Subtle outer glow */
 }
 
 .menu-btn span {
@@ -122,15 +281,25 @@ html, body {
 }
 
 .menu-btn:hover {
-    box-shadow: 0 0 20px cyan; /* More glow on hover */
+    box-shadow: 0 0 20px cyan;
+    /* More glow on hover */
     transform: scale(1.05) skew(-15deg);
 }
 
-/* Settings Button */
-#settingsBtn {
-    position: absolute;
+#smallButtons {
+    position: fixed;
+    /* Changed to fixed so it stays in place while scrolling */
     bottom: 20px;
     right: 20px;
+    display: flex;
+    z-index: 1000;
+    gap: 10px;
+    /* Ensure buttons stay on top of other elements */
+}
+
+/* Settings Button */
+#settingsBtn,
+#scaleBtn {
     font-size: 2.5rem;
     background: #444;
     color: white;
@@ -139,9 +308,12 @@ html, body {
     border-radius: 50%;
     cursor: pointer;
     transition: 0.2s;
+    width: 75px;
+    height: 75px;
 }
 
-#settingsBtn:hover {
+#settingsBtn:hover,
+#scaleBtn:hover {
     background: #666;
 }
 

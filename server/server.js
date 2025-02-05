@@ -26,8 +26,9 @@ app.use("/shared", express.static(path.join(__dirname, "../shared")));
 
 let players = {};
 
-
 let queue = {};
+
+let matchStartDelay = 1000 * 5;
 
 function matchmake() {
     let MMR_THRESHOLD = 100;
@@ -83,7 +84,7 @@ function chooseRandom(array) {
     return [choice, array];
 }
 function matchMade(_players, gameMode) {
-    let game = new Game(io);
+    let game = new Game(io, false);
 
     for (let id of _players) {
         const player = players[id];
@@ -109,7 +110,7 @@ function matchMade(_players, gameMode) {
 
         setTimeout(() => {
             game.start(true);
-        }, 1000 * 15);
+        }, matchStartDelay);
 
     } else if (gameMode == "2v2") {
         let p1;
@@ -136,7 +137,7 @@ function matchMade(_players, gameMode) {
 
         setTimeout(() => {
             game.start(true);
-        }, 1000 * 15);
+        }, matchStartDelay);
 
 
     } else if (gameMode == "3v3") {
@@ -175,7 +176,7 @@ function matchMade(_players, gameMode) {
 
         setTimeout(() => {
             game.start(true);
-        }, 1000 * 15);
+        }, matchStartDelay);
 
     }
 }
@@ -216,24 +217,34 @@ io.on("connection", (socket) => {
         console.log("After queue:", queue);
     });
 
-    socket.on("settings", settings => {
+    socket.on("settings", (settings, cb) => {
+        if (!players[socket.id].game) {
+            cb(false);
+            return;
+        }
         for (let key in settings) {
             players[socket.id].game.players[socket.id].settings[key] = settings[key];
         }
+        cb(true);
     });
 
-    socket.on("exit pointer lock", () => {
+    socket.on("exit pointer lock", (cb) => {
         players[socket.id].game.players[socket.id].inputs["mousePos"] = null;
+        cb();
     });
     socket.on("start", () => {
-        if (players[socket.id].game) players[socket.id].game.start(true);
+        if (players[socket.id].game?.privateMatch) {
+            players[socket.id].game.start(true);
+        }
     });
     socket.on("end", () => {
-        if (players[socket.id].game) players[socket.id].game.end();
+        if (players[socket.id].game?.privateMatch) {
+            players[socket.id].game.end(true);
+        }
     });
 
     socket.on("team", team => {
-        if (!players[socket.id].game) return;
+        if (!players[socket.id].game?.privateMatch) return;
 
         if (team === "left" || team === "right") {
             players[socket.id].game.players[socket.id].team = team;
@@ -241,20 +252,25 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("create game", () => {
-        players[socket.id].game = new Game(io);
+    socket.on("create game", (cb) => {
+        players[socket.id].game = new Game(io, true);
         players[socket.id].game.playerJoined(socket);
-        socket.emit("game code", players[socket.id].game.code);
+        cb(players[socket.id].game.code);
     });
 
-    socket.on("join game", code => {
+    socket.on("join game", (code, cb) => {
+
         for (let id in Game.instances) {
             const _game = Game.instances[id];
             if (_game.code === code) {
                 _game.playerJoined(socket);
                 players[socket.id].game = _game;
-                socket.emit("game code", players[socket.id].game.code);
             }
+        }
+        if (players[socket.id].game) {
+            cb(players[socket.id].game.code);
+        } else {
+            cb(false);
         }
     });
     socket.on("mousemove", (x, y, w, h) => {
@@ -278,6 +294,34 @@ io.on("connection", (socket) => {
     socket.on("disconnecting", () => {
         console.log(socket.id, "disconnecting");
     });
+
+    function playerLeft(id) {
+        if (!players[id].game) return;
+
+        players[id].game.playerLeft(socket);
+
+        let playersLeft = false;
+        let playersRight = false;
+
+        for (let _id in players[id].game.players) {
+            const player = players[id].game.players[_id];
+            if (player.team == "left") {
+                playersLeft = true;
+            } else if (player.team == "right") {
+                playersRight = true;
+            }
+        }
+
+        if (!playersLeft || !playersRight) {
+            players[id].game.end();
+        }
+
+        players[id].game = null;
+    }
+
+    socket.on("leave game", () => {
+        if (players[socket.id].game) playerLeft(socket.id);
+    })
 
     socket.on("disconnect", () => {
         console.log("A user disconnected!", socket.id);
@@ -323,24 +367,7 @@ io.on("connection", (socket) => {
 
         // Remove player from the players object
 
-        if (players[socket.id].game) players[socket.id].game.playerLeft(socket);
-
-        let playersLeft = false;
-        let playersRight = false;
-
-        for (let id in players[socket.id].game?.players) {
-            const player = players[socket.id].game.players[id];
-            if (player.team == "left") {
-                playersLeft = true;
-            } else if (player.team == "right") {
-                playersRight = true;
-            }
-        }
-
-        if (!playersLeft || !playersRight) {
-            players[socket.id].game?.end();
-
-        }
+        playerLeft(socket.id);
 
         delete players[socket.id];
 

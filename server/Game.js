@@ -64,7 +64,8 @@ export const normalize = (vec2) => {
 export default class Game {
     static instances = {};
 
-    constructor(io) {
+    constructor(io, privateMatch) {
+        this.privateMatch = privateMatch;
         this.id = Math.random().toString(36).substr(2, 9);
         this.code = generateFourLetterString();
 
@@ -128,6 +129,7 @@ export default class Game {
 
         this.running = false;
 
+
     }
 
     pauseTimer() {
@@ -153,28 +155,235 @@ export default class Game {
             this.running = true;
             this.io.to(this.id).emit("game start");
         }
-        for (let id in this.players) {
-            const player = this.players[id];
-            player.movementLocked = true;
-            player.flip = true;
 
-            let spawnPos;
-            let spawnAngle;
+        let leftPlayerIds = Object.values(this.players).filter(p => p.team === "left").map(obj => obj.id);
+        let rightPlayerIds = Object.values(this.players).filter(p => p.team === "right").map(obj => obj.id);
 
-            if (player.team === "left") {
-                spawnPos = Vec2(-CONSTANTS.FIELD_WIDTH / 2 + 3, 0);
-                spawnAngle = degToRad(90);
-            } else if (player.team === "right") {
-                spawnPos = Vec2(CONSTANTS.FIELD_WIDTH / 2 - 3, 0);
-                spawnAngle = degToRad(270);
+        const farLeft = [Vec2(-CONSTANTS.FIELD_WIDTH / 2 + 4, 0), Math.atan2(0, -CONSTANTS.FIELD_WIDTH / 2 + 4) - (Math.PI / 2)];
+        const topLeft = [Vec2(-CONSTANTS.FIELD_WIDTH / 2 + 4, -CONSTANTS.FIELD_HEIGHT / 2 + 4), Math.atan2(-CONSTANTS.FIELD_HEIGHT / 2 + 4, -CONSTANTS.FIELD_WIDTH / 2 + 4) - (Math.PI / 2)];
+        const bottomLeft = [Vec2(-CONSTANTS.FIELD_WIDTH / 2 + 4, CONSTANTS.FIELD_HEIGHT / 2 - 4), Math.atan2(CONSTANTS.FIELD_HEIGHT / 2 - 4, -CONSTANTS.FIELD_WIDTH / 2 + 4) - (Math.PI / 2)];
+
+        const farRight = [Vec2(CONSTANTS.FIELD_WIDTH / 2 - 4, 0), Math.atan2(0, CONSTANTS.FIELD_WIDTH / 2 - 4) - (Math.PI / 2)];
+        const topRight = [Vec2(CONSTANTS.FIELD_WIDTH / 2 - 4, -CONSTANTS.FIELD_HEIGHT / 2 + 4), Math.atan2(-CONSTANTS.FIELD_HEIGHT / 2 + 4, CONSTANTS.FIELD_WIDTH / 2 - 4) - (Math.PI / 2)];
+        const bottomRight = [Vec2(CONSTANTS.FIELD_WIDTH / 2 - 4, CONSTANTS.FIELD_HEIGHT / 2 - 4), Math.atan2(CONSTANTS.FIELD_HEIGHT / 2 - 4, CONSTANTS.FIELD_WIDTH / 2 - 4) - (Math.PI / 2)];
+
+        function removeRandomItem(arr) {
+            if (arr.length === 0) return [null, arr]; // Return null if the array is empty
+
+            const randomIndex = Math.floor(Math.random() * arr.length);
+            const removedItem = arr[randomIndex];
+            const newArray = [...arr.slice(0, randomIndex), ...arr.slice(randomIndex + 1)];
+
+            return [removedItem, newArray];
+        }
+
+
+        let playerSpawns = {};
+
+
+        if (
+            (leftPlayerIds.length == 0 && rightPlayerIds.length == 1) ||
+            (leftPlayerIds.length == 1 && rightPlayerIds.length == 0) ||
+            (leftPlayerIds.length == 1 && rightPlayerIds.length == 1)
+        ) {
+            // 1v1
+            let [spawns, _] = removeRandomItem(["left right", "top left bottom right", "bottom left top right"]);
+
+            if (spawns === "left right") {
+                let leftId;
+                [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[leftId] = farLeft;
+                let rightId;
+                [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[rightId] = farRight;
+            } else if (spawns === "top left bottom right") {
+                let topLeftId;
+                [topLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[topLeftId] = topLeft;
+                let bottomRightId;
+                [bottomRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[bottomRightId] = bottomRight;
+            } else if (spawns == "bottom left top right") {
+                let bottomLeftId;
+                [bottomLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[bottomLeftId] = bottomLeft;
+                let topRightId;
+                [topRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[topRightId] = topRight;
             }
 
+
+        } else if (
+            (leftPlayerIds.length == 0 && rightPlayerIds.length == 2) ||
+            (leftPlayerIds.length == 1 && rightPlayerIds.length == 2) ||
+            (leftPlayerIds.length == 2 && rightPlayerIds.length == 2) ||
+            (leftPlayerIds.length == 2 && rightPlayerIds.length == 0) ||
+            (leftPlayerIds.length == 2 && rightPlayerIds.length == 1)
+        ) {
+            // 2v2
+            let [spawns, _] = removeRandomItem(["left right tl br", "left right bl tr"]);
+
+            if (spawns === "left right tl br") {
+                let leftId;
+                [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[leftId] = farLeft;
+                let tlId;
+                [tlId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[tlId] = topLeft;
+
+                let rightId;
+                [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[rightId] = farRight;
+                let brId;
+                [brId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[brId] = bottomRight;
+            } else if (spawns === "left right bl tr") {
+                let leftId;
+                [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[leftId] = farLeft;
+                let blId;
+                [blId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[blId] = bottomLeft;
+
+                let rightId;
+                [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[rightId] = farRight;
+                let trId;
+                [trId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[trId] = topRight;
+            }
+        } else if (
+            (leftPlayerIds.length == 0 && rightPlayerIds.length == 3) ||
+            (leftPlayerIds.length == 1 && rightPlayerIds.length == 3) ||
+            (leftPlayerIds.length == 2 && rightPlayerIds.length == 3) ||
+            (leftPlayerIds.length == 3 && rightPlayerIds.length == 3) ||
+            (leftPlayerIds.length == 3 && rightPlayerIds.length == 0) ||
+            (leftPlayerIds.length == 3 && rightPlayerIds.length == 1) ||
+            (leftPlayerIds.length == 3 && rightPlayerIds.length == 2)
+        ) {
+            let spawns = "top middle bottom";
+            if (spawns == "top middle bottom") {
+                let topLeftId;
+                [topLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[topLeftId] = topLeft;
+                let leftId;
+                [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[leftId] = farLeft;
+                let blId;
+                [blId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+                playerSpawns[blId] = bottomLeft;
+
+                let topRightId;
+                [topRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[topRightId] = topRight;
+                let rightId;
+                [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[rightId] = farRight;
+                let brId;
+                [brId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+                playerSpawns[brId] = bottomRight;
+            }
+        }
+
+
+
+        // if (leftPlayerIds.length === 1) {
+        //     let [spawns, _] = removeRandomItem(["left right", "top left bottom right", "bottom left top right"]);
+        //     if (spawns === "left right") {
+        //         let leftId;
+        //         [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[leftId] = farLeft;
+        //         let rightId;
+        //         [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[rightId] = farRight;
+        //     } else if (spawns === "top left bottom right") {
+        //         let topLeftId;
+        //         [topLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[topLeftId] = topLeft;
+        //         let bottomRightId;
+        //         [bottomRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[bottomRightId] = bottomRight;
+        //     } else if (spawns == "bottom left top right") {
+        //         let bottomLeftId;
+        //         [bottomLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[bottomLeftId] = bottomLeft;
+        //         let topRightId;
+        //         [topRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[topRightId] = topRight;
+        //     }
+        // } else if (leftPlayerIds.length === 2) {
+        //     let [spawns, _] = removeRandomItem(["left right tl br", "left right bl tr"]);
+        //     if (spawns === "left right tl br") {
+        //         let leftId;
+        //         [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[leftId] = farLeft;
+        //         let tlId;
+        //         [tlId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[tlId] = topLeft;
+
+        //         let rightId;
+        //         [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[rightId] = farRight;
+        //         let brId;
+        //         [brId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[brId] = bottomRight;
+        //     } else if (spawns === "left right bl tr") {
+        //         let leftId;
+        //         [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[leftId] = farLeft;
+        //         let blId;
+        //         [blId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[blId] = bottomLeft;
+
+        //         let rightId;
+        //         [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[rightId] = farRight;
+        //         let trId;
+        //         [trId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[trId] = topRight;
+        //     }
+        // } else if (leftPlayerIds.length === 3) {
+        //     let spawns = "top middle bottom";
+        //     if (spawns == "top middle bottom") {
+        //         let topLeftId;
+        //         [topLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[topLeftId] = topLeft;
+        //         let leftId;
+        //         [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[leftId] = farLeft;
+        //         let blId;
+        //         [blId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
+        //         playerSpawns[blId] = bottomLeft;
+
+        //         let topRightId;
+        //         [topRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[topRightId] = topRight;
+        //         let rightId;
+        //         [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[rightId] = farRight;
+        //         let brId;
+        //         [brId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
+        //         playerSpawns[brId] = bottomRight;
+        //     }
+        // }
+
+        // const leftAssignments = assignSpawn(leftPlayers, leftPositions.sort(() => Math.random() - 0.5));
+        // const rightAssignments = assignSpawn(rightPlayers, rightPositions.sort(() => Math.random() - 0.5));
+
+        for (let id in this.players) {
+            const player = this.players[id];
+
+            let spawnPos = playerSpawns[id][0];
+            let spawnAngle = playerSpawns[id][1];
+
+            player.movementLocked = true;
+            player.flip = true;
             player.car.body.setPosition(spawnPos);
             player.car.body.setAngle(spawnAngle);
             player.car.body.setLinearVelocity(Vec2(0, 0));
             player.car.body.setAngularVelocity(0);
 
-            console.log(player.car.id, spawnPos);
+            // console.log(player.car.id, pos);
             this.io.to(this.id).emit("object updates", {
                 [player.car.id]: {
                     boosting: false,
@@ -182,13 +391,13 @@ export default class Game {
                     angle: spawnAngle
                 }
             }, performance.now(), false);
+
         }
 
         this.ball.body.setPosition(Vec2(0, 0));
         this.ball.body.setAngle(0);
         this.ball.body.setLinearVelocity(Vec2(0, 0));
         this.ball.body.setAngularVelocity(0);
-
 
         const startGame = () => {
             for (let id in this.players) {
@@ -198,11 +407,8 @@ export default class Game {
             if (initial) this.remainingSeconds = 60 * 2;
 
             this.io.to(this.id).emit("game timer", this.remainingSeconds);
-
             this.startTimer();
-
         }
-
 
         let countdown = 3;
         function countDown() {
@@ -222,6 +428,8 @@ export default class Game {
 
         // Initialize the countdown
         countDown.call(this);
+
+
     }
 
     end() {
@@ -242,6 +450,7 @@ export default class Game {
         delete this.objects[player.car.id];
         delete this.players[socket.id];
 
+        console.log("LEFT", this.id);
         socket.leave(this.id);
 
         if (Object.keys(this.players).length == 0) {
@@ -289,7 +498,7 @@ export default class Game {
             const normalImpulse = impulse.normalImpulses[0]; // Get the first normal impulse
 
             // Define a multiplier for the force effect
-            const SMASH_FORCE = 1.25;
+            const SMASH_FORCE = 1.175;
 
             // Calculate the force to apply
             const force = normalImpulse * SMASH_FORCE;
@@ -362,6 +571,7 @@ export default class Game {
         }, car);
 
         this.players[socket.id] = {
+            id: socket.id,
             inputs: {},
             car: carObj,
             flip: true,
@@ -369,7 +579,6 @@ export default class Game {
             settings: {
                 mouseRange: 300,
                 sensitivity: 1.75,
-
             }
         }
 
