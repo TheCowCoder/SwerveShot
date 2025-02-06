@@ -132,7 +132,7 @@ export default class Game {
 
         this.speedMultiplier = 0.5;
 
-
+        this.gameStats = null;
     }
 
     setSpeedMultiplier(smp) {
@@ -148,10 +148,9 @@ export default class Game {
     gameTimerFunc() {
         this.remainingSeconds--;
         if (this.remainingSeconds == 0) {
-            console.log("Game over");
             clearInterval(this.gameTimer);
-
             this.running = false;
+            this.io.to(this.id).emit("game stats", this.gameStats);
 
         }
         this.io.to(this.id).emit("game timer", this.remainingSeconds);
@@ -161,6 +160,32 @@ export default class Game {
         if (initial) {
             this.running = true;
             this.io.to(this.id).emit("game start");
+            this.gameStats = {
+                type: null,
+                players: {}
+            };
+            let playerNum = Object.keys(this.players).length
+            if ((playerNum == 1 || playerNum == 2)) {
+                this.gameStats.type = "1v1";
+            } else if ((playerNum == 3 || playerNum == 4)) {
+                this.gameStats.type == "2v2";
+            } else if ((playerNum == 5 || playerNum == 6)) {
+                this.gameStats.type == "3v3";
+            } else {
+                this.gameStats.type == "Swerve Party";
+            }
+
+            for (let id in this.players) {
+                console.log("adding to gamestat", id);
+                this.gameStats.players[id] = {
+                    username: this.players[id].settings.username,
+                    goals: 0,
+                    boostUsed: 0,
+                    flipsUsed: 0,
+                    ballTouches: 0,
+                    team: this.players[id].team
+                }
+            }
         }
 
         let leftPlayerIds = Object.values(this.players).filter(p => p.team === "left").map(obj => obj.id);
@@ -443,8 +468,11 @@ export default class Game {
         clearInterval(this.gameTimer);
         this.running = false;
         this.io.to(this.id).emit("game timer", 0);
+        this.io.to(this.id).emit("game stats", this.gameStats);
 
     }
+
+
 
 
 
@@ -473,6 +501,19 @@ export default class Game {
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
 
+        for (let id in this.players) {
+            let player = this.players[id];
+            if (
+                (bodyA == player.car.body && bodyB == this.ball.body) ||
+                (bodyB == player.car.body && bodyA == this.ball.body)
+            ) {
+                this.lastTouchedCarId = id;
+                if (this.gameStats) {
+                    this.gameStats.players[id].ballTouches ++;
+
+                }
+            }
+        }
 
         // if (bodyA === this.walls || bodyB == this.walls) {
         //     for (let id in this.players) {
@@ -505,7 +546,7 @@ export default class Game {
             const normalImpulse = impulse.normalImpulses[0]; // Get the first normal impulse
 
             // Define a multiplier for the force effect
-            const SMASH_FORCE = 1.1;
+            const SMASH_FORCE = 1.1 * this.speedMultiplier;
 
             // Calculate the force to apply
             const force = normalImpulse * SMASH_FORCE;
@@ -586,6 +627,7 @@ export default class Game {
             settings: {
                 mouseRange: 300,
                 sensitivity: 1.75,
+                speedMultiplier: 0.5
             }
         }
 
@@ -768,10 +810,13 @@ export default class Game {
 
             // Handle flip, boost, and drive force
             if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
-                player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE * this.speedMultiplier), player.car.body.getWorldCenter(), true);
+                player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE * this.speedMultiplier * 1.5), player.car.body.getWorldCenter(), true);
                 player.flip = false;
 
-
+                if (this.gameStats?.players[player.id]) {
+                    this.gameStats.players[player.id].flipsUsed++;
+                }
+                
                 const FLIP_DELAY = 500;
                 setTimeout(() => {
                     player.flip = true;
@@ -783,6 +828,12 @@ export default class Game {
                     player.car.body.applyLinearImpulse(forward.mul(this.BOOST_FORCE * this.speedMultiplier), player.car.body.getWorldCenter(), true);
                     player.car.boosting = true;
                     this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: true } })
+
+                    if (this.gameStats?.players[player.id]) {
+                        this.gameStats.players[player.id].boostUsed ++;
+                    }
+
+
                 } else {
                     // Apply normal drive force
                     if ((player.inputs["ArrowUp"] || player.inputs["w"]) && !(player.inputs["ArrowDown"] || player.inputs["s"])) {
@@ -848,8 +899,16 @@ export default class Game {
 
             if (this.running) {
                 this.goalScored = true;
-
                 this.pauseTimer();
+            }
+
+            let scorerId = this.lastTouchedCarId;
+            console.log("Goal scored by", scorerId);
+
+
+
+            if (scorerId && this.gameStats?.players[scorerId]) {
+                this.gameStats.players[scorerId].goals ++;
             }
 
             let explosionCenterTop;
@@ -891,7 +950,6 @@ export default class Game {
             if (leftGoalIntersection) {
                 goalScored("left");
             }
-
         }
 
         let objectUpdates = {};

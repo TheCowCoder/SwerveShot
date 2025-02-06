@@ -1,3 +1,132 @@
+
+
+#username {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: Arial, sans-serif;
+    font-size: 30px;
+}
+
+#usernameInp {
+    padding: 8px 12px;
+    font-size: 20px;
+    border: 2px solid #3498db;
+    border-radius: 6px;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+#usernameInp:focus {
+    border-color: #2980b9;
+    box-shadow: 0 0 5px rgba(41, 128, 185, 0.5);
+}
+
+
+#gameType {
+    font-size: 50px;
+    margin-top: 10px;
+}
+.stats-table th:first-of-type {
+    display: flex;
+}
+.stats-table td:not(:first-of-type) {
+    text-align: center;
+}
+.stats-table td {
+    font-size: 25px;
+
+}
+
+/* Popup container */
+#gameStatsPopup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.75);
+    color: black;
+    padding: 20px;
+    border-radius: 10px;
+    width: 50%;
+    text-align: center;
+    z-index: 1000;
+    font-family: 'Fredoka One', cursive;
+}
+
+/* Close button */
+#closeStats {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: rgb(0, 0, 0);
+    font-size: 24px;
+    cursor: pointer;
+}
+
+#gameStatsPopup h2 {
+    font-size: 40px;
+    margin-bottom: 15px;
+}
+
+/* Team labels */
+.team-label {
+    font-size: 30px;
+    font-weight: bold;
+    margin-top: 15px;
+}
+
+.left-team {
+    color: blue;
+    text-align: left;
+    margin-bottom: 10px;
+}
+
+.right-team {
+    color: red;
+    text-align: left;
+    margin-top: 15px;
+}
+
+/* Player names layout */
+.player-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+/* Stats table */
+.stats-container {
+    margin-top: 20px;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stats-table th {
+    font-size: 22.5px;
+    border-bottom: 2px solid rgb(0, 0, 0);
+  
+}
+
+.stats-table th, .stats-table td {
+    padding: 10px;
+    text-align: right;
+}
+
+.stats-table td {
+    word-break: break-all;
+    max-width: 160px;
+}
+
+
 .setting div {
     display: flex;
     flex-wrap: wrap;
@@ -230,7 +359,7 @@ body {
 
 #buttons {
     margin-top: 30px;
-    margin-bottom: 100px;
+    /* margin-bottom: 100px; */
     width: 90%;
     display: flex;
     flex-direction: column;

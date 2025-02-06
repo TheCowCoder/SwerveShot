@@ -194,10 +194,13 @@ io.on("connection", (socket) => {
 
     socket.emit("your id", socket.id);
 
+    socket.on("time", (remainingSeconds) => {
+        if (players[socket.id].game) players[socket.id].game.remainingSeconds = remainingSeconds;
+    })
 
     socket.on("chat", msg => {
         let sender;
-        if (players[socket.id].game.players[socket.id].team == "left") {
+        if (players[socket.id].game?.players[socket.id].team == "left") {
             sender = "Blue";
         } else {
             sender = "Red";
@@ -238,7 +241,7 @@ io.on("connection", (socket) => {
                 players[socket.id].game.setSpeedMultiplier(settings[key]);
             }
         }
-        cb(true);
+        if (typeof cb == "function") cb(true);
     });
 
     socket.on("exit pointer lock", (cb) => {

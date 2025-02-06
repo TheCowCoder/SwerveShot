@@ -14,17 +14,17 @@ We can train with canvas pixels via CNN
 
 
 FOR SWERVESHOT
-Make queue system to queue 1v1 2v2 or 3v3
+Make queue system to queue 1v1 2v2 or 3v3 []
 Make MMR with this
 
-First make a way to test game creation so make a game creation system
+First make a way to test game creation so make a game creation system []
 
 
 Make indicator when have flip
 make boost indicator
 make boost pads
-make game logic
-make queue system
+make game logic []
+make queue system []
 make room system work multiplayer []
 make rounded corners []
 
@@ -42,33 +42,31 @@ get games working and play with forest and fine tune
 then make ranked queue system
 
 Make goal explosion and cooldown after goal []
-make no mmr queue system for 1s 2s and 3s
+make no mmr queue system for 1s 2s and 3s []
 
 
 make sure ball can spin and give it a sprite like ballslap []
 give car a sprite so can tell front and back []
 
 
-make mouse control
-
 make front of car rounded corners
 
-make dribbling system
+make dribbling system - fix rotational controls
 
 make car shape editor
 - make car with cup in front
 
 
-fix interpolation glitch when tp
+fix interpolation glitch when tp DONE
 
 Sun Jan 26, 4:43pm TODO
-make github and work on pc for mouse []
-make mouse control mode []
-fine tune ball control
+make github and work on pc for mouse DONE
+make mouse control mode DONE
+fine tune ball control DONE
 WORK TOWARDS FINISHED GAME
-1. Add match timer
-> we have create and join room by code for 1v1, 2v2, 3v3, private match
-> we need queue for 1v1, 2v2, 3v3
+1. Add match timer DONE
+> we have create and join room by code for 1v1, 2v2, 3v3, private match DONE
+> we need queue for 1v1, 2v2, 3v3 DONE
 > we need race and speedrun modes
 
 make air hockey mode where car sticks to mouse
@@ -93,17 +91,16 @@ make home screen with settings, gamemodes
 - no login for first launch, so everyone has 0 MMR
 - make games restartable
 
-make bots
 
 make speedruns/races
 
 make cars bump eachother harder DONE
 make flip recharge DONE
 
-canvas scale resizing
+canvas scale resizing DONE
 
 fix interpolation bugs DONE
-fix match end
+
 
 
 
@@ -113,3 +110,13 @@ fix settings and no goal explosion or reset in freeplay and no score in freeplay
 Make 2v2 spawn positions DONE
 Fix field warp DONE
 fix 3 2 1 DONE
+
+
+TODO Feb 6 9:52 AM
+Add end screen
+make bots
+make car not bounce off wall
+
+NOW:
+Track last to touch ball
+add to game stats when goal is scored

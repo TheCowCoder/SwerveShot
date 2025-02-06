@@ -40,6 +40,11 @@
             </div>
             <!-- <span id="playerCount">-</span> -->
         </div>
+
+        <div id="username">
+            <span>Username:</span>
+            <input id="usernameInp">
+        </div>
     </div>
 
     <div id="smallButtons">
@@ -124,7 +129,48 @@
 
 
 
+    <div id="gameStatsPopup">
+        <button id="closeStats">&times;</button>
+        <h2 id="gameType"></h2>
+        <div>
+            <div class="team-label left-team">Left (Blue)</div>
+        </div>
 
+        <div class="stats-container">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Goals</th>
+                        <th>Ball Touches</th>
+                        <th>Flips Used</th>
+                        <th>Boost Used</th>
+                    </tr>
+                </thead>
+                <tbody id="leftStatsBody"></tbody>
+            </table>
+        </div>
+
+        <div>
+            <div class="team-label right-team">Right (Red)</div>
+        </div>
+
+        <div class="stats-container">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Goals</th>
+                        <th>Ball Touches</th>
+                        <th>Flips Used</th>
+                        <th>Boost Used</th>
+                    </tr>
+                </thead>
+                <tbody id="rightStatsBody"></tbody>
+            </table>
+        </div>
+    </div>
+    
 
 
 

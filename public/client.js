@@ -117,6 +117,50 @@ let ourId;
 let mousePos;
 let settings;
 
+socket.on("game stats", (stats) => {
+    console.log("game stats", stats);
+
+    // Set game type
+    document.getElementById("gameType").textContent = stats.type;
+
+    // Get containers
+    const leftStatsBody = document.getElementById("leftStatsBody");
+    const rightStatsBody = document.getElementById("rightStatsBody");
+
+    // Clear previous data
+    leftStatsBody.innerHTML = "";
+    rightStatsBody.innerHTML = "";
+
+    // Populate teams and stats
+    Object.entries(stats.players).forEach(([playerId, playerData]) => {
+
+        const statsRow = document.createElement("tr");
+        statsRow.innerHTML = `
+            <td>${playerData.username}</td>
+            <td>${playerData.goals}</td>
+            <td>${playerData.ballTouches}</td>
+            <td>${playerData.flipsUsed}</td>
+            <td>${playerData.boostUsed}</td>
+        `;
+
+        if (playerData.team === "left") {
+            leftStatsBody.appendChild(statsRow);
+        } else {
+            rightStatsBody.appendChild(statsRow);
+        }
+
+    });
+
+    // Show the popup
+    document.getElementById("gameStatsPopup").style.display = "block";
+});
+
+// Close popup event
+document.getElementById("closeStats").addEventListener("click", () => {
+    document.getElementById("gameStatsPopup").style.display = "none";
+});
+
+
 socket.on("chat", (sender, msg) => {
     chatLog.value += `${sender}: ${msg}\n`;
 });
@@ -126,7 +170,13 @@ socket.on("match made", () => {
 
 socket.on("settings", _settings => {
     settings = _settings;
+
+    // Update the HTML elements with the received settings
+    document.getElementById("mouseRange").value = settings.mouseRange;
+    document.getElementById("mouseSensitivity").value = settings.sensitivity;
+    document.getElementById("speedMult").value = settings.speedMultiplier;
 });
+
 
 socket.on("your id", id => {
     ourId = id;
@@ -357,6 +407,12 @@ chatInput.addEventListener("keydown", function (e) {
         if (msg.startsWith("/")) {
             const cmd = msg.slice(1).split(" ")[0];
             const args = msg.slice(1).split(" ").slice(1); // Extract the arguments
+
+            if (cmd == "time") {
+                socket.emit("time", parseInt(args[0]));
+            } else if (cmd == "s") {
+                document.getElementById("gameStatsPopup").style.display = "block";
+            }
         } else {
             socket.emit("chat", msg);
         }
@@ -379,7 +435,12 @@ let oneVOneBtn = document.getElementById("oneVOneBtn");
 let twoVTwoBtn = document.getElementById("twoVTwoBtn");
 let buttonContainer = document.getElementById("buttons");
 
+let usernameInp = document.getElementById("usernameInp");
+
 privateBtn.addEventListener("click", () => {
+    if (!usernameInp.value) return alert("Please choose a username ;) !");
+
+
     // Store original buttons
     let originalButtons = buttonContainer.innerHTML;
 
@@ -400,9 +461,15 @@ privateBtn.addEventListener("click", () => {
             copyToClipboard(code);
 
             inGame();
+
+            socket.emit("settings", {
+                username: usernameInp.value
+            });
         });
 
         restoreButtons(originalButtons);
+
+
 
         inGame();
     });
@@ -416,6 +483,10 @@ privateBtn.addEventListener("click", () => {
                 chatLog.value += "The game code is copied to clipboard!";
                 copyToClipboard(code);
                 inGame();
+
+                socket.emit("settings", {
+                    username: usernameInp.value
+                });
             } else {
                 alert("Couldn't find game!");
             }
@@ -432,12 +503,16 @@ let searching = document.getElementById("searching");
 searching.style.display = "none";
 
 oneVOneBtn.addEventListener("click", (e) => {
+    if (!usernameInp.value) return alert("Please choose a username");
+
     socket.emit("queue", "1v1");
     buttonContainer.style.display = "none";
     searching.style.display = null;
 });
 
 twoVTwoBtn.addEventListener("click", (e) => {
+    if (!usernameInp.value) return alert("Please choose a username");
+
     socket.emit("queue", "2v2");
     buttonContainer.style.display = "none";
     searching.style.display = null;
@@ -445,6 +520,8 @@ twoVTwoBtn.addEventListener("click", (e) => {
 
 
 threeVThreeBtn.addEventListener("click", (e) => {
+    if (!usernameInp.value) return alert("Please choose a username");
+
     socket.emit("queue", "3v3");
     buttonContainer.style.display = "none";
     searching.style.display = null;

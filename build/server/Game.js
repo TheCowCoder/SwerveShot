@@ -313,7 +313,7 @@ export default class Game {
             settings: {
                 mouseRange: 300,
                 sensitivity: 1.5,
-
+                speedMultiplier: 0.5
             }
         }
 
