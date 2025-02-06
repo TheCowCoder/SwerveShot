@@ -493,13 +493,14 @@ export default class Game {
             delete Game.instances[this.id];
         }
     }
+
     onBeginContact(contact) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
-    
+
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
-    
+
         for (let id in this.players) {
             let player = this.players[id];
             if (
@@ -508,59 +509,62 @@ export default class Game {
             ) {
                 this.lastTouchedCarId = id;
                 if (this.gameStats) {
-                    this.gameStats.players[id].ballTouches++;
+                    this.gameStats.players[id].ballTouches ++;
+
                 }
             }
         }
+
+        // if (bodyA === this.walls || bodyB == this.walls) {
+        //     for (let id in this.players) {
+        //         const player = this.players[id];
+        //         if (bodyB === player.car.body || bodyA === player.car.body) {
+        //             player.flip = true;
+        //         }
+        //     }
+        // }
     }
-    
     onPostSolve(contact, impulse) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
-    
+
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
-    
-        let car = null;
-        let ballHit = false;
-    
+
+        let carA = null;
+        let carB = null;
+
+        // Check if both bodies belong to players
         for (let id in this.players) {
             const player = this.players[id];
-            if (bodyA === player.car.body) car = player.car;
-            if (bodyB === player.car.body) car = player.car;
+            if (bodyA === player.car.body) carA = player.car;
+            if (bodyB === player.car.body) carB = player.car;
         }
-    
-        if ((bodyA === this.ball.body && car) || (bodyB === this.ball.body && car)) {
-            ballHit = true;
-        }
-    
-        const normalImpulse = impulse.normalImpulses[0];
-        const SMASH_FORCE = 1.1 * this.speedMultiplier;
-        const BALL_SMASH_FORCE = 1.1 * this.speedMultiplier; // Multiplier for ball impact
-    
-        const force = normalImpulse * (ballHit ? BALL_SMASH_FORCE : SMASH_FORCE);
-        const collisionNormal = contact.getWorldManifold().normal;
-    
-        if (car && ballHit) {
-            this.ball.body.applyLinearImpulse(
-                { x: collisionNormal.x * force, y: collisionNormal.y * force },
-                this.ball.body.getWorldCenter()
+
+        if (carA && carB) {
+            // Get the impulse magnitude from the collision
+            const normalImpulse = impulse.normalImpulses[0]; // Get the first normal impulse
+
+            // Define a multiplier for the force effect
+            const SMASH_FORCE = 1.1 * this.speedMultiplier;
+
+            // Calculate the force to apply
+            const force = normalImpulse * SMASH_FORCE;
+
+            // Apply force in the collision direction
+            const collisionNormal = contact.getWorldManifold().normal;
+
+            carA.body.applyLinearImpulse(
+                { x: -collisionNormal.x * force, y: -collisionNormal.y * force },
+                carA.body.getWorldCenter()
             );
-        } else if (car) {
-            let otherCar = bodyA === car.body ? bodyB : bodyA;
-            if (otherCar) {
-                car.body.applyLinearImpulse(
-                    { x: -collisionNormal.x * force, y: -collisionNormal.y * force },
-                    car.body.getWorldCenter()
-                );
-                otherCar.applyLinearImpulse(
-                    { x: collisionNormal.x * force, y: collisionNormal.y * force },
-                    otherCar.getWorldCenter()
-                );
-            }
+
+            carB.body.applyLinearImpulse(
+                { x: collisionNormal.x * force, y: collisionNormal.y * force },
+                carB.body.getWorldCenter()
+            );
         }
     }
-    
 
     onEndContact(contact) {
 
