@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwerveShot</title>
+
+
+    <script type="module">
+        import * as CONSTANTS from "../shared/CONSTANTS.js";
+        window.CONSTANTS = CONSTANTS;
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+
+
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <div id="menu">
+        <span id="title">SwerveShot</span>
+        <div id="buttons">
+            <div>
+                <button class="menu-btn" id="oneVOneBtn"><span>1v1</span></button>
+                <button class="menu-btn" id="twoVTwoBtn"><span>2v2</span></button>
+                <button class="menu-btn" id="threeVThreeBtn"><span>3v3</span></button>
+
+            </div>
+
+            <button class="menu-btn" id="privateBtn"><span>Private</span></button>
+        </div>
+
+        <div id="searching">
+            <div>
+                <span>Searching...</span>
+                <span class="spinner"></span>
+            </div>
+            <!-- <span id="playerCount">-</span> -->
+        </div>
+
+        <div id="username">
+            <span>Username:</span>
+            <input id="usernameInp">
+        </div>
+    </div>
+
+    <div id="smallButtons">
+        <button id="scaleBtn">[ ]</button>
+        <button id="settingsBtn">⚙️</button>
+    </div>
+
+    <div id="overlay" class="overlay">
+        <div class="settings-container">
+            <h2>Settings</h2>
+
+            <!-- Gameplay Category -->
+            <div class="category">
+                <h3>Gameplay</h3>
+                <div class="setting">
+                    <button id="startGame" class="start-btn">Start Game</button>
+                    <button id="endGame" class="end-btn">End Game</button>
+                </div>
+
+                <div class="setting">
+                    <label for="team">Team:</label>
+                    <select id="team">
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                    </select>
+                </div>
+
+
+                <div class="setting">
+                    <label for="mouseSensitivity">Mouse Sensitivity:</label>
+                    <input type="number" id="mouseSensitivity" step="0.01" value="1.75">
+                </div>
+
+                <div class="setting">
+                    <div>
+                        <label for="mouseRange">Mouse Range:</label>
+                        <small>How far the mouse can travel from the car</small>
+                    </div>
+
+                    <input type="number" id="mouseRange" value="300">
+                </div>
+
+                <div class="setting">
+                    <div>
+                        <label for="speedMult">Speed Multiplier:</label>
+                        <small>Controls the game speed</small>
+                    </div>
+                    <input type="number" id="speedMult" step="0.1" value="0.5">
+                </div>
+
+                <div class="setting">
+                    <button id="leaveGame">Leave game</button>
+                </div>
+            </div>
+            <div class="category">
+                <h3>Controls</h3>
+                <div>
+                    <ul>
+                        <li>Scroll = Zoom in or out</li>
+                        <li>Arrow keys = Move</li>
+                        <li>Space = Boost</li>
+                        <li>F = Flip</li>
+                        <li>Shift = Tight turn</li>
+                    </ul>
+                    <br>
+                    <strong>Mouse control mode:</strong>
+                    <ul>
+                        <li>Click the screen to enable</li>
+                        <li>Move mouse = Aim car</li>
+                        <li>WASD = Move around</li>
+                        <li>Left click = Flip</li>
+                        <li>Right click = Boost</li>
+                    </ul>
+                </div>
+            </div>
+
+
+            <button id="saveBtn">Save</button>
+            <button id="closeBtn">Close</button>
+        </div>
+    </div>
+
+
+
+    <div id="gameStatsPopup">
+        <button id="closeStats">&times;</button>
+        <h2 id="gameType"></h2>
+        <div>
+            <div class="team-label left-team">Left (Blue)</div>
+        </div>
+
+        <div class="stats-container">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Goals</th>
+                        <th>Ball Touches</th>
+                        <th>Flips Used</th>
+                        <th>Boost Used</th>
+                    </tr>
+                </thead>
+                <tbody id="leftStatsBody"></tbody>
+            </table>
+        </div>
+
+        <div>
+            <div class="team-label right-team">Right (Red)</div>
+        </div>
+
+        <div class="stats-container">
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>Goals</th>
+                        <th>Ball Touches</th>
+                        <th>Flips Used</th>
+                        <th>Boost Used</th>
+                    </tr>
+                </thead>
+                <tbody id="rightStatsBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+
+
+
+    <div id="game">
+
+        <div id="chat">
+            <textarea id="chatLog" readonly></textarea>
+            <input id="chatInput" type="text">
+        </div>
+
+        <div id="tsparticles"></div>
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="gameInfo">
+            <div id="countdown"></div>
+
+            <div id="leftScore">0</div>
+            <div id="rightScore">0</div>
+
+            <div id="timer"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="Vec2.js" type="module"></script>
+    <script src="Camera.js" type="module"></script>
+    <script src="client.js" type="module" defer></script>
+</body>
+
+</html>

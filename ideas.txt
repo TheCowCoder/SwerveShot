@@ -1,0 +1,4 @@
+1. Make pan, zoom camera with angle
+2. Make camera follow car in big field, optional angle, make car angle to mouse
+- make cars small and ball big
+3. Make car a dot that mouse controls, either move camera when dot goes near screen edge, or make camera follow dot
