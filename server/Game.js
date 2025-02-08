@@ -737,8 +737,16 @@ export default class Game {
 
             // Handle flip, boost, and drive force
             if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
+                let initialVel = player.car.body.getLinearVelocity().clone();
+
                 player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE), player.car.body.getWorldCenter(), true);
                 player.flip = false;
+
+                let flipDistance = 100;
+
+                setTimeout(() => {
+                    player.car.body.setLinearVelocity(initialVel);
+                }, flipDistance)
 
                 if (this.gameStats?.players[player.id]) {
                     this.gameStats.players[player.id].flipsUsed++;
