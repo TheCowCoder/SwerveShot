@@ -417,8 +417,8 @@ privateBtn.addEventListener("click", () => {
     // Replace buttons with "Create Room" and "Join Room"
     buttonContainer.innerHTML = `
         <div>
-            <button class="menu-btn" id="createRoomBtn">Create Room</button>
-            <button class="menu-btn" id="joinRoomBtn">Join Room</button>
+            <button class="menu-btn" id="createRoomBtn"><span>Create Room</span></button>
+            <button class="menu-btn" id="joinRoomBtn"><span>Join Room</span></button>
         </div>
     `;
 
