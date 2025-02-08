@@ -887,7 +887,12 @@ class Renderer {
 
         ctx.font = "20px Arial";
         ctx.fillStyle = "black";
-        ctx.fillText(`FPS: ${Math.round(this.FPS)}`, 10, 30);
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+
+        let topLeft = camera.screenToWorld(Vec2(10, 10));
+        let textPos = Vec2(topLeft.x * CONSTANTS.SCALE + canvas.width / 2, topLeft.y * CONSTANTS.SCALE + canvas.height / 2)
+        ctx.fillText(`FPS: ${Math.round(this.FPS)}`, textPos.x, textPos.y);
 
         requestAnimationFrame(this.animate);
     }

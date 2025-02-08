@@ -498,7 +498,7 @@ body {
 #rightScore,
 #timer {
     position: absolute;
-    font-size: 100px;
+    font-size: 75px;
     font-weight: bold;
     color: white;
     z-index: 1000;
