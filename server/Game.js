@@ -429,7 +429,6 @@ export default class Game {
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
 
-
         for (let id in this.players) {
             let player = this.players[id];
 
@@ -438,6 +437,19 @@ export default class Game {
                 (bodyB == player.car.body && bodyA == this.walls)
             ) {
                 contact.setRestitution(0);
+            }
+
+            // Zero impact when a car collides with another car
+            for (let otherId in this.players) {
+                if (id !== otherId) {
+                    let otherPlayer = this.players[otherId];
+                    if (
+                        (bodyA === player.car.body && bodyB === otherPlayer.car.body) ||
+                        (bodyB === player.car.body && bodyA === otherPlayer.car.body)
+                    ) {
+                        contact.setRestitution(0);
+                    }
+                }
             }
         }
     }
@@ -451,6 +463,7 @@ export default class Game {
 
         let car = null;
         let ballHit = false;
+        let carCollision = false;
 
         for (let id in this.players) {
             const player = this.players[id];
@@ -462,39 +475,44 @@ export default class Game {
             ballHit = true;
         }
 
-        const normalImpulse = impulse.normalImpulses[0];
-        const SMASH_FORCE = 3;
-        // const BALL_SMASH_FORCE = 1 * this.speedMultiplier; // Multiplier for ball impact
-
-        // const force = normalImpulse * (ballHit ? BALL_SMASH_FORCE : SMASH_FORCE);
-        const force = normalImpulse * SMASH_FORCE;
-
-        const collisionNormal = contact.getWorldManifold().normal;
-
-        if (car && ballHit) {
-            // this.ball.body.applyLinearImpulse(
-            //     { x: collisionNormal.x * force, y: collisionNormal.y * force },
-            //     this.ball.body.getWorldCenter()
-            // );
-        } else if (car) {
-            let otherCar = bodyA === car.body ? bodyB : bodyA;
-            if (otherCar) {
-
-                // car.body.applyLinearImpulse(
-                //     { x: -collisionNormal.x * force, y: -collisionNormal.y * force },
-                //     car.body.getWorldCenter()
-                // );
-                otherCar.applyLinearImpulse(
-                    { x: -collisionNormal.x * force, y: -collisionNormal.y * force },
-                    otherCar.getWorldCenter()
-                );
+        // Check if two cars collided
+        for (let id in this.players) {
+            for (let otherId in this.players) {
+                if (id !== otherId) {
+                    let player = this.players[id];
+                    let otherPlayer = this.players[otherId];
+                    if (
+                        (bodyA === player.car.body && bodyB === otherPlayer.car.body) ||
+                        (bodyB === player.car.body && bodyA === otherPlayer.car.body)
+                    ) {
+                        carCollision = true;
+                    }
+                }
             }
         }
+
+        // const normalImpulse = impulse.normalImpulses[0];
+        // const SMASH_FORCE = 3;
+        // const force = normalImpulse * SMASH_FORCE;
+        // const collisionNormal = contact.getWorldManifold().normal;
+
+        // if (car && ballHit) {
+        //     // this.ball.body.applyLinearImpulse(
+        //     //     { x: collisionNormal.x * force, y: collisionNormal.y * force },
+        //     //     this.ball.body.getWorldCenter()
+        //     // );
+        // } else if (car && !carCollision) { // Prevent impulse application for car-to-car collisions
+        //     let otherCar = bodyA === car.body ? bodyB : bodyA;
+        //     if (otherCar) {
+        //         otherCar.applyLinearImpulse(
+        //             { x: -collisionNormal.x * force, y: -collisionNormal.y * force },
+        //             otherCar.getWorldCenter()
+        //         );
+        //     }
+        // }
     }
 
-
     onEndContact(contact) {
-
     }
 
 
