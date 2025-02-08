@@ -122,6 +122,8 @@ socket.on("mouse pos", pos => {
 socket.on("objects added", (_objects) => {
     for (let id in _objects) {
         let object = _objects[id];
+        if (object.position) object.position = Vec2(object.position);
+
         objects[id] = object;
     }
 });
@@ -710,7 +712,6 @@ function drawSprite(object, width, height = width) {
 
 
 
-
 function step() {
     renderWorld();
     let ourCar;
@@ -720,25 +721,11 @@ function step() {
             ourCar = obj;
         }
     }
-    if (ourCar) {
-        // camera.setPosition(ourCar.position)
-        camera.position.x += (ourCar.position.x - camera.position.x) * 0.1;
-        camera.position.y += (ourCar.position.y - camera.position.y) * 0.1;
-
-    };
-
-
-
-    if (ourCar) {
-        ctx.fillStyle = "red";
-        ctx.beginPath();
-        ctx.arc(ourCar.position.x * CONSTANTS.SCALE + canvas.width / 2, ourCar.position.y * CONSTANTS.SCALE + canvas.height / 2, 5, 0, Math.PI * 2);
-        ctx.fill();
-    }
 
 
     camera.applyTransform(ctx);
 }
+
 
 class Renderer {
     constructor() {
@@ -795,10 +782,10 @@ class Renderer {
         if (!prevState || !currState) return;
 
         if (prevState.position && currState.position) {
-            object.position = {
-                x: prevState.position.x + alpha * (currState.position.x - prevState.position.x),
-                y: prevState.position.y + alpha * (currState.position.y - prevState.position.y),
-            };
+            object.position = Vec2(
+                prevState.position.x + alpha * (currState.position.x - prevState.position.x),
+                prevState.position.y + alpha * (currState.position.y - prevState.position.y),
+            );
         }
 
         if (prevState.angle !== undefined && currState.angle !== undefined) {
@@ -809,16 +796,16 @@ class Renderer {
     animate(frameTime) {
         const deltaTime = frameTime - this.lastFrameTime;
         this.lastFrameTime = frameTime;
-
+    
         const timeSinceUpdate = Date.now() - this.lastServerUpdateTime;
         const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1);
-
+    
         for (let id in this.currentServerState) {
             if (!objects) continue;
             const object = objects[id];
             const prevState = this.previousServerState[id];
             const currState = this.currentServerState[id];
-
+    
             if (object) {
                 if (currState.interpolate) {
                     this.interpolateObject(object, prevState, currState, alpha);
@@ -826,21 +813,32 @@ class Renderer {
                     object.position = currState.position;
                     object.angle = currState.angle;
                 }
+            
+                // Camera follows our car with smooth lag
+                if (object.socketId == ourId) {
+                    const cameraLagFactor = 0.1; // Adjust to control lag effect
+                    camera.setPosition(Vec2(
+                        camera.position.x + cameraLagFactor * (object.position.x - camera.position.x),
+                        camera.position.y + cameraLagFactor * (object.position.y - camera.position.y)
+                    ));
+                }
             }
+            
         }
-
+    
         step(deltaTime);
-
+    
         if (performance.now() - this.lastFPSUpdate >= 1000) {
             this.FPS = 1000 / deltaTime;
             this.lastFPSUpdate = performance.now();
         }
-
+    
         ctx.font = "20px Arial";
         ctx.fillStyle = "black";
         ctx.fillText(`FPS: ${Math.round(this.FPS)}`, 10, 30);
-
+    
         requestAnimationFrame(this.animate);
     }
+    
 }
 
