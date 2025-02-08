@@ -87,7 +87,7 @@ export default class Game {
 
         this.TURN_SPEED = 5;    // Turn speed
         this.POWERSLIDE_TURN_SPEED = 10;
-        this.DRIVE_FORCE = 50;   // Drive force
+        this.DRIVE_FORCE = 75;   // Drive force
         // this.BOOST_FORCE = 125;
         this.BOOST_FORCE = 3;
 
@@ -100,28 +100,29 @@ export default class Game {
         this.CAR_HEIGHT = 2.5;     // Car height in meters
         this.CAR_DENSITY = 0.37;
         this.CAR_FRICTION = 0;
-        this.CAR_RESTITUTION = 1;
+        // this.CAR_RESTITUTION = 1;
+        this.CAR_RESTITUTION = 0;
 
-        this.BALL_RADIUS = 0.75 - 0.125; // Meters
         this.BALL_DENSITY = 0.5 - 0.125;
         this.BALL_FRICTION = 0;
         this.BALL_RESTITUTION = 1;
 
         this.WALL_DENSITY = 0;
         this.WALL_FRICTION = 0;
-        this.WALL_RESTITUTION = 0.5;
+        // this.WALL_RESTITUTION = 0.5;
+        this.WALL_RESTITUTION = 1;
 
-        this.WALL_CORNER_RADIUS = 5;
-        this.WALL_CORNER_SEGMENTS = 25;
+        this.WALL_CORNER_RADIUS = 5 * 1.5;
+        this.WALL_CORNER_SEGMENTS = 25 * 1.5;
 
-        this.GOAL_SIZE = 7.5;
-        this.GOAL_DEPTH = 3;
+
 
 
         this.createField();
 
 
         this.world.on("begin-contact", this.onBeginContact.bind(this));
+        this.world.on("pre-solve", this.onPreSolve.bind(this));
         this.world.on("post-solve", this.onPostSolve.bind(this));
         this.world.on("end-contact", this.onEndContact.bind(this));
 
@@ -130,14 +131,11 @@ export default class Game {
         this.running = false;
 
 
-        this.speedMultiplier = 0.5;
 
         this.gameStats = null;
     }
 
-    setSpeedMultiplier(smp) {
-        this.speedMultiplier = smp;
-    }
+
 
     pauseTimer() {
         clearInterval(this.gameTimer);
@@ -192,13 +190,6 @@ export default class Game {
         let leftPlayerIds = Object.values(this.players).filter(p => p.team === "left").map(obj => obj.id);
         let rightPlayerIds = Object.values(this.players).filter(p => p.team === "right").map(obj => obj.id);
 
-        const farLeft = [Vec2(-CONSTANTS.FIELD_WIDTH / 2 + 4, 0), Math.atan2(0, -CONSTANTS.FIELD_WIDTH / 2 + 4) - (Math.PI / 2)];
-        const topLeft = [Vec2(-CONSTANTS.FIELD_WIDTH / 2 + 4, -CONSTANTS.FIELD_HEIGHT / 2 + 4), Math.atan2(-CONSTANTS.FIELD_HEIGHT / 2 + 4, -CONSTANTS.FIELD_WIDTH / 2 + 4) - (Math.PI / 2)];
-        const bottomLeft = [Vec2(-CONSTANTS.FIELD_WIDTH / 2 + 4, CONSTANTS.FIELD_HEIGHT / 2 - 4), Math.atan2(CONSTANTS.FIELD_HEIGHT / 2 - 4, -CONSTANTS.FIELD_WIDTH / 2 + 4) - (Math.PI / 2)];
-
-        const farRight = [Vec2(CONSTANTS.FIELD_WIDTH / 2 - 4, 0), Math.atan2(0, CONSTANTS.FIELD_WIDTH / 2 - 4) - (Math.PI / 2)];
-        const topRight = [Vec2(CONSTANTS.FIELD_WIDTH / 2 - 4, -CONSTANTS.FIELD_HEIGHT / 2 + 4), Math.atan2(-CONSTANTS.FIELD_HEIGHT / 2 + 4, CONSTANTS.FIELD_WIDTH / 2 - 4) - (Math.PI / 2)];
-        const bottomRight = [Vec2(CONSTANTS.FIELD_WIDTH / 2 - 4, CONSTANTS.FIELD_HEIGHT / 2 - 4), Math.atan2(CONSTANTS.FIELD_HEIGHT / 2 - 4, CONSTANTS.FIELD_WIDTH / 2 - 4) - (Math.PI / 2)];
 
         function removeRandomItem(arr) {
             if (arr.length === 0) return [null, arr]; // Return null if the array is empty
@@ -225,24 +216,24 @@ export default class Game {
             if (spawns === "left right") {
                 let leftId;
                 [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[leftId] = farLeft;
+                playerSpawns[leftId] = CONSTANTS.farLeft;
                 let rightId;
                 [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[rightId] = farRight;
+                playerSpawns[rightId] = CONSTANTS.farRight;
             } else if (spawns === "top left bottom right") {
                 let topLeftId;
                 [topLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[topLeftId] = topLeft;
+                playerSpawns[topLeftId] = CONSTANTS.topLeft;
                 let bottomRightId;
                 [bottomRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[bottomRightId] = bottomRight;
+                playerSpawns[bottomRightId] = CONSTANTS.bottomRight;
             } else if (spawns == "bottom left top right") {
                 let bottomLeftId;
                 [bottomLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[bottomLeftId] = bottomLeft;
+                playerSpawns[bottomLeftId] = CONSTANTS.bottomLeft;
                 let topRightId;
                 [topRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[topRightId] = topRight;
+                playerSpawns[topRightId] = CONSTANTS.topRight;
             }
 
 
@@ -259,31 +250,31 @@ export default class Game {
             if (spawns === "left right tl br") {
                 let leftId;
                 [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[leftId] = farLeft;
+                playerSpawns[leftId] = CONSTANTS.farLeft;
                 let tlId;
                 [tlId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[tlId] = topLeft;
+                playerSpawns[tlId] = CONSTANTS.topLeft;
 
                 let rightId;
                 [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[rightId] = farRight;
+                playerSpawns[rightId] = CONSTANTS.farRight;
                 let brId;
                 [brId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
                 playerSpawns[brId] = bottomRight;
             } else if (spawns === "left right bl tr") {
                 let leftId;
                 [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[leftId] = farLeft;
+                playerSpawns[leftId] = CONSTANTS.farLeft;
                 let blId;
                 [blId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[blId] = bottomLeft;
+                playerSpawns[blId] = CONSTANTS.bottomLeft;
 
                 let rightId;
                 [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[rightId] = farRight;
+                playerSpawns[rightId] = CONSTANTS.farRight;
                 let trId;
                 [trId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[trId] = topRight;
+                playerSpawns[trId] = CONSTANTS.topRight;
             }
         } else if (
             (leftPlayerIds.length == 0 && rightPlayerIds.length == 3) ||
@@ -298,23 +289,23 @@ export default class Game {
             if (spawns == "top middle bottom") {
                 let topLeftId;
                 [topLeftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[topLeftId] = topLeft;
+                playerSpawns[topLeftId] = CONSTANTS.topLeft;
                 let leftId;
                 [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[leftId] = farLeft;
+                playerSpawns[leftId] = CONSTANTS.farLeft;
                 let blId;
                 [blId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
-                playerSpawns[blId] = bottomLeft;
+                playerSpawns[blId] = CONSTANTS.bottomLeft;
 
                 let topRightId;
                 [topRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[topRightId] = topRight;
+                playerSpawns[topRightId] = CONSTANTS.topRight;
                 let rightId;
                 [rightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[rightId] = farRight;
+                playerSpawns[rightId] = CONSTANTS.farRight;
                 let brId;
                 [brId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
-                playerSpawns[brId] = bottomRight;
+                playerSpawns[brId] = CONSTANTS.bottomRight;
             }
         }
 
@@ -431,6 +422,26 @@ export default class Game {
         }
     }
 
+    onPreSolve(contact) {
+        const fixtureA = contact.getFixtureA();
+        const fixtureB = contact.getFixtureB();
+
+        const bodyA = fixtureA.getBody();
+        const bodyB = fixtureB.getBody();
+
+
+        for (let id in this.players) {
+            let player = this.players[id];
+
+            if (
+                (bodyA == player.car.body && bodyB == this.walls) ||
+                (bodyB == player.car.body && bodyA == this.walls)
+            ) {
+                contact.setRestitution(0);
+            }
+        }
+    }
+
     onPostSolve(contact, impulse) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
@@ -452,7 +463,7 @@ export default class Game {
         }
 
         const normalImpulse = impulse.normalImpulses[0];
-        const SMASH_FORCE = 2.5 * this.speedMultiplier;
+        const SMASH_FORCE = 3;
         // const BALL_SMASH_FORCE = 1 * this.speedMultiplier; // Multiplier for ball impact
 
         // const force = normalImpulse * (ballHit ? BALL_SMASH_FORCE : SMASH_FORCE);
@@ -501,6 +512,7 @@ export default class Game {
     }
 
     playerJoined(socket) {
+        // return;
         socket.join(this.id);
 
         let objectsForClient = {};
@@ -543,7 +555,6 @@ export default class Game {
             settings: {
                 mouseRange: 300,
                 sensitivity: 1.75,
-                speedMultiplier: 0.5,
                 username: ""
             }
         }
@@ -585,10 +596,10 @@ export default class Game {
         let topRightCorner = createCircleVertices(topRight.add(Vec2(-this.WALL_CORNER_RADIUS, this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(270), degToRad(360));
 
         let rightGoal = [
-            Vec2(CONSTANTS.FIELD_WIDTH / 2, -this.GOAL_SIZE / 2),
-            Vec2(CONSTANTS.FIELD_WIDTH / 2 + this.GOAL_DEPTH, -this.GOAL_SIZE / 2),
-            Vec2(CONSTANTS.FIELD_WIDTH / 2 + this.GOAL_DEPTH, this.GOAL_SIZE / 2),
-            Vec2(CONSTANTS.FIELD_WIDTH / 2, this.GOAL_SIZE / 2)
+            Vec2(CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2),
+            Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2),
+            Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2),
+            Vec2(CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2)
         ];
         this.rightGoalVertices = rightGoal;
         let bottomRightCorner = createCircleVertices(bottomRight.add(Vec2(-this.WALL_CORNER_RADIUS, -this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(0), degToRad(90));
@@ -596,10 +607,10 @@ export default class Game {
         let bottomLeftCorner = createCircleVertices(bottomLeft.add(Vec2(this.WALL_CORNER_RADIUS, -this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(90), degToRad(180));
 
         let leftGoal = [
-            Vec2(-CONSTANTS.FIELD_WIDTH / 2, this.GOAL_SIZE / 2),
-            Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, this.GOAL_SIZE / 2),
-            Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, -this.GOAL_SIZE / 2),
-            Vec2(-CONSTANTS.FIELD_WIDTH / 2, -this.GOAL_SIZE / 2)
+            Vec2(-CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2),
+            Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2),
+            Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2),
+            Vec2(-CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2)
         ];
         this.leftGoalVertices = leftGoal;
 
@@ -624,7 +635,7 @@ export default class Game {
 
         // Create the ball at the center of the world (in meters)
         const ball = this.world.createDynamicBody(new Vec2(0, 0));
-        ball.createFixture(new planck.Circle(this.BALL_RADIUS), {
+        ball.createFixture(new planck.Circle(CONSTANTS.BALL_RADIUS), {
             density: this.BALL_DENSITY,
             friction: this.BALL_FRICTION,
             restitution: this.BALL_RESTITUTION
@@ -636,7 +647,7 @@ export default class Game {
         this.ball = this.createObject({
             type: "circle",
             position: new Vec2(0, 0),
-            radius: this.BALL_RADIUS,
+            radius: CONSTANTS.BALL_RADIUS,
             color: "white",
             sprite: "ball"
         }, ball);
@@ -668,66 +679,47 @@ export default class Game {
 
                 // Normalize the angle difference to the range [-π, π]
                 angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
-                let turnPower = 10 * this.speedMultiplier;
+                let turnPower = 25;
                 player.car.body.setAngularVelocity(angleDiff * turnPower);
 
 
-                // Left and right car movement
                 let carPos = player.car.body.getPosition();
                 let mousePos = player.inputs["mousePos"].clone().mul(1 / CONSTANTS.SCALE).add(carPos);
 
-                // Vector from car to mouse
-                let toMouse = normalize(Vec2(mousePos.x - carPos.x, mousePos.y - carPos.y));
+                // Compute direction from mouse to car
+                let toCar = normalize(carPos.clone().sub(mousePos));
 
 
-                // Calculate perpendicular vectors (tangents)
-                let tangentLeft = Vec2(toMouse.y, -toMouse.x);  // Rotate 90° counterclockwise
-                let tangentRight = Vec2(-toMouse.y, toMouse.x); // Rotate -90° clockwise
-
-                let moveDir;
-
-                // Set moveDir based on the key pressed
+                // Compute perpendicular movement direction
+                let moveDir = null;
                 if (player.inputs["a"] && !player.inputs["d"]) {
-                    moveDir = tangentLeft; // Move left
+                    moveDir = Vec2(-toCar.y, toCar.x);  // Right (clockwise)
                 } else if (player.inputs["d"] && !player.inputs["a"]) {
-                    moveDir = tangentRight; // Move right
+                    moveDir = Vec2(toCar.y, -toCar.x);  // Left (counterclockwise
                 }
 
 
-
-                // Keep mouse in same position
 
                 if (moveDir) {
-                    // Calculate destination distance from mouse cursor and apply force
-                    let carDiff = carPos.clone().sub(player.car.lastPosition);
-                    // console.log(carDiff);
-                    player.inputs.mousePos.sub(carDiff.mul(CONSTANTS.SCALE));
-                    this.io.to(id).emit("mouse pos", player.inputs.mousePos);
 
-                    let lateralImpulse = 10; // Adjust impulse strength as needed
-                    // Apply lateral impulse to the car
-                    let speed = player.car.body.getLinearVelocity().clone().length();
-
-                    let counterCentrifugalForce = toMouse.clone().mul(1);
-                    player.car.body.applyLinearImpulse(moveDir.mul(lateralImpulse / speed).add(counterCentrifugalForce), player.car.body.getWorldCenter(), true);
+                    let forceMagnitude = this.DRIVE_FORCE;
+                    player.car.body.applyForce(moveDir.mul(forceMagnitude), player.car.body.getWorldCenter(), true);
                 }
-
-
             } else {
                 let turnSpeed = this.TURN_SPEED
                 if (player.inputs["Shift"]) {
                     turnSpeed = this.POWERSLIDE_TURN_SPEED;
                 }
 
-                if (player.inputs["ArrowLeft"] && !player.inputs["ArrowRight"]) player.car.body.setAngularVelocity(-turnSpeed * this.speedMultiplier);
-                else if (player.inputs["ArrowRight"] && !player.inputs["ArrowLeft"]) player.car.body.setAngularVelocity(turnSpeed * this.speedMultiplier);
+                if (player.inputs["ArrowLeft"] && !player.inputs["ArrowRight"]) player.car.body.setAngularVelocity(-turnSpeed);
+                else if (player.inputs["ArrowRight"] && !player.inputs["ArrowLeft"]) player.car.body.setAngularVelocity(turnSpeed);
                 else player.car.body.setAngularVelocity(0); // Stop rotation when left or right is released
 
             }
 
             // Handle flip, boost, and drive force
             if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
-                player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE * this.speedMultiplier * 1.5), player.car.body.getWorldCenter(), true);
+                player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE), player.car.body.getWorldCenter(), true);
                 player.flip = false;
 
                 if (this.gameStats?.players[player.id]) {
@@ -742,7 +734,7 @@ export default class Game {
                 if (player.inputs[" "] || player.inputs["mouse2"]) {
                     // Apply boost force if space is pressed
                     // player.car.body.applyForceToCenter(forward.mul(this.BOOST_FORCE));
-                    player.car.body.applyLinearImpulse(forward.mul(this.BOOST_FORCE * this.speedMultiplier), player.car.body.getWorldCenter(), true);
+                    player.car.body.applyLinearImpulse(forward.mul(this.BOOST_FORCE), player.car.body.getWorldCenter(), true);
                     player.car.boosting = true;
                     this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: true } })
 
@@ -793,23 +785,6 @@ export default class Game {
             }
         }
 
-        // let rightGoal = [
-        //     Vec2(CONSTANTS.FIELD_WIDTH / 2, -this.GOAL_SIZE / 2),
-        //     Vec2(CONSTANTS.FIELD_WIDTH / 2 + this.GOAL_DEPTH, -this.GOAL_SIZE / 2),
-        //     Vec2(CONSTANTS.FIELD_WIDTH / 2 + this.GOAL_DEPTH, this.GOAL_SIZE / 2),
-        //     Vec2(CONSTANTS.FIELD_WIDTH / 2, this.GOAL_SIZE / 2)
-        // ];
-        // this.rightGoalVertices = rightGoal;
-        // let bottomRightCorner = createCircleVertices(bottomRight.add(Vec2(-WALL_CORNER_RADIUS, -WALL_CORNER_RADIUS)), WALL_CORNER_RADIUS, WALL_CORNER_SEGMENTS, degToRad(0), degToRad(90));
-
-        // let bottomLeftCorner = createCircleVertices(bottomLeft.add(Vec2(WALL_CORNER_RADIUS, -WALL_CORNER_RADIUS)), WALL_CORNER_RADIUS, WALL_CORNER_SEGMENTS, degToRad(90), degToRad(180));
-
-        // let leftGoal = [
-        //     Vec2(-CONSTANTS.FIELD_WIDTH / 2, GOAL_SIZE / 2),
-        //     Vec2(-CONSTANTS.FIELD_WIDTH / 2 - GOAL_DEPTH, GOAL_SIZE / 2),
-        //     Vec2(-CONSTANTS.FIELD_WIDTH / 2 - GOAL_DEPTH, -GOAL_SIZE / 2),
-        //     Vec2(-CONSTANTS.FIELD_WIDTH / 2, -GOAL_SIZE / 2)
-        // ];
 
         const goalScored = (team) => {
             this.io.to(this.id).emit("goal", team);
@@ -833,13 +808,13 @@ export default class Game {
             let explosionCenterBottom;
 
             if (team === "right") {
-                explosionCenterTop = Vec2(CONSTANTS.FIELD_WIDTH / 2 + this.GOAL_DEPTH, -this.GOAL_SIZE / 2);
-                explosionCenterMiddle = Vec2(CONSTANTS.FIELD_WIDTH / 2 + this.GOAL_DEPTH, 0);
-                explosionCenterBottom = Vec2(CONSTANTS.FIELD_WIDTH / 2 + this.GOAL_DEPTH, this.GOAL_SIZE / 2);
+                explosionCenterTop = Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2);
+                explosionCenterMiddle = Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, 0);
+                explosionCenterBottom = Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2);
             } else if (team === "left") {
-                explosionCenterTop = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, -this.GOAL_SIZE / 2);
-                explosionCenterMiddle = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, 0);
-                explosionCenterBottom = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - this.GOAL_DEPTH, this.GOAL_SIZE / 2);
+                explosionCenterTop = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2);
+                explosionCenterMiddle = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, 0);
+                explosionCenterBottom = Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2);
             }
 
             let explosionRadius = 500;
@@ -858,12 +833,12 @@ export default class Game {
         if (!this.goalScored) {
             let ballPos = this.ball.body.getPosition();
 
-            let rightGoalIntersection = circleRectIntersection(ballPos.x, ballPos.y, this.BALL_RADIUS, this.rightGoalVertices[0].x, this.rightGoalVertices[0].y, this.rightGoalVertices[2].x, this.rightGoalVertices[2].y, true);
+            let rightGoalIntersection = circleRectIntersection(ballPos.x, ballPos.y, CONSTANTS.BALL_RADIUS, this.rightGoalVertices[0].x, this.rightGoalVertices[0].y, this.rightGoalVertices[2].x, this.rightGoalVertices[2].y, true);
             if (rightGoalIntersection) {
                 goalScored("right");
             }
 
-            let leftGoalIntersection = circleRectIntersection(ballPos.x, ballPos.y, this.BALL_RADIUS, this.leftGoalVertices[0].x, this.leftGoalVertices[0].y, this.leftGoalVertices[2].x, this.leftGoalVertices[2].y, true);
+            let leftGoalIntersection = circleRectIntersection(ballPos.x, ballPos.y, CONSTANTS.BALL_RADIUS, this.leftGoalVertices[0].x, this.leftGoalVertices[0].y, this.leftGoalVertices[2].x, this.leftGoalVertices[2].y, true);
             if (leftGoalIntersection) {
                 goalScored("left");
             }

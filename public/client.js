@@ -1,10 +1,10 @@
-import { Vec2 } from './Vec2.js';
 import Camera from './Camera.js';
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
 
 const CONSTANTS = window.CONSTANTS;
+const Vec2 = window.Vec2;
 
 // Set canvas size to match the screen
 
@@ -37,7 +37,7 @@ document.addEventListener('pointerlockchange', () => {
 });
 
 
-const camera = new Camera(CONSTANTS.SCALE);
+const camera = new Camera(CONSTANTS.SCALE, canvas);
 
 
 
@@ -240,6 +240,10 @@ document.addEventListener('keydown', (e) => {
     if (!e.repeat) socket.emit("keydown", e.key);
     if (e.key === "Escape") {
         customScale = false;
+        scaleBtn.style.display = "none";
+        camera.setScale(1);
+    } else if (e.key == "0") {
+
     }
 });
 
@@ -263,20 +267,12 @@ document.addEventListener("mouseup", e => {
     socket.emit("mouseup", e.button);
 });
 
+let customScale;
 
 document.addEventListener("wheel", (e) => {
-    camera.scale += e.deltaY * 0.00025;
-    console.log(camera.scale);
-    return;
-    if (!wallVertices) return;
+    camera.setScale(camera.scale + e.deltaY * 0.00025);
     customScale = true;
     scaleBtn.style.display = null;
-
-    // Adjust multiplier based on the scroll direction and distance
-    scaleResize += e.deltaY * 0.00025;  // Multiply by a small value to control the effect
-    console.log(scaleResize);  // Output the new multiplier to check the result
-
-    // Prevent the default scroll behavior (optional)
     e.preventDefault();
 });
 
@@ -286,7 +282,6 @@ document.addEventListener("wheel", (e) => {
 const defaultSettings = {
     mouseRange: 300,
     sensitivity: 1.75,
-    speedMultiplier: 0.5,
     username: ""
 };
 
@@ -306,7 +301,6 @@ let usernameInp = document.getElementById("usernameInp");
 
 document.getElementById("mouseRange").value = settings.mouseRange;
 document.getElementById("mouseSensitivity").value = settings.sensitivity;
-document.getElementById("speedMult").value = settings.speedMultiplier;
 usernameInp.value = settings.username;
 
 usernameInp.addEventListener("input", () => {
@@ -334,12 +328,10 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 
     let mouseSensitivity = document.getElementById("mouseSensitivity").value;
     let mouseRange = document.getElementById("mouseRange").value;
-    let speedMultiplier = document.getElementById("speedMult").value;
 
     let newSettings = {
         mouseSensitivity,
         mouseRange,
-        speedMultiplier
     };
     socket.emit("settings", newSettings, (result) => {
         if (result) {
@@ -405,6 +397,8 @@ scaleBtn.style.display = "none";
 scaleBtn.addEventListener("click", () => {
     customScale = false;
     scaleBtn.style.display = "none";
+    camera.setScale(1);
+
 });
 
 let privateBtn = document.getElementById("privateBtn");
@@ -538,8 +532,7 @@ function restoreButtons(originalHTML) {
 
 
 const spriteCache = {};
-let scaleResize;
-let customScale = false;
+
 // Render the world to the canvas
 function renderWorld() {
     ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
@@ -552,16 +545,12 @@ function renderWorld() {
     const fieldHeight = CONSTANTS.FIELD_HEIGHT * CONSTANTS.SCALE;
     const padding = 50;
 
-    const scaleX = (canvas.width - padding * 2) / fieldWidth;
-    const scaleY = (canvas.height - padding * 2) / fieldHeight;
-    if (!customScale) scaleResize = Math.min(scaleX, scaleY);
-    scaleResize = 1;
-
     const offsetX = canvas.width / 2;
     const offsetY = canvas.height / 2;
 
-    renderWalls(offsetX, offsetY, scaleResize);
-    renderObjects(offsetX, offsetY, scaleResize);
+    renderFieldLines(offsetX, offsetY);
+    renderWalls(offsetX, offsetY);
+    renderObjects(offsetX, offsetY);
 
     if (mousePos) {
         for (let id in objects) {
@@ -569,7 +558,7 @@ function renderWorld() {
             if (object.socketId == ourId) {
                 // Draw a small red dot
                 ctx.beginPath();
-                ctx.arc(mousePos.x + (canvas.width / 2) + (object.position.x * CONSTANTS.SCALE * scaleResize), mousePos.y + (canvas.height / 2) + (object.position.y * CONSTANTS.SCALE * scaleResize), 7.5, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
+                ctx.arc(mousePos.x + (canvas.width / 2) + (object.position.x * CONSTANTS.SCALE), mousePos.y + (canvas.height / 2) + (object.position.y * CONSTANTS.SCALE), 7.5, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
                 ctx.fillStyle = "#4bff3b";
                 ctx.fill();
                 ctx.closePath();
@@ -577,11 +566,72 @@ function renderWorld() {
         }
     }
 }
-function renderWalls(offsetX, offsetY, scaleResize) {
+
+function renderFieldLines(offsetX, offsetY) {
+    const lineWidth = 5;
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = lineWidth;
+
+    // Center Line
+    ctx.beginPath();
+    ctx.moveTo(offsetX, offsetY - CONSTANTS.FIELD_HEIGHT / 2 * CONSTANTS.SCALE);
+    ctx.lineTo(offsetX, offsetY + CONSTANTS.FIELD_HEIGHT / 2 * CONSTANTS.SCALE);
+    ctx.stroke();
+
+
+
+    // Goal Area Lines
+
+
+
+    let rightGoal = [
+        Vec2(CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2),
+        Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2),
+        Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2),
+        Vec2(CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2)
+    ];
+
+    let leftGoal = [
+        Vec2(-CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2),
+        Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2),
+        Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2),
+        Vec2(-CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2)
+    ];
+
+
+
+
+    ctx.beginPath();
+    ctx.moveTo(offsetX + rightGoal[0].x * CONSTANTS.SCALE, offsetY + rightGoal[0].y * CONSTANTS.SCALE);
+    ctx.lineTo(offsetX + rightGoal[3].x * CONSTANTS.SCALE, offsetY + rightGoal[3].y * CONSTANTS.SCALE);
+    ctx.stroke();
+
+
+    ctx.beginPath();
+    ctx.moveTo(offsetX + leftGoal[0].x * CONSTANTS.SCALE, offsetY + leftGoal[0].y * CONSTANTS.SCALE);
+    ctx.lineTo(offsetX + leftGoal[3].x * CONSTANTS.SCALE, offsetY + leftGoal[3].y * CONSTANTS.SCALE);
+    ctx.stroke();
+
+
+    // Center Circle
+    ctx.beginPath();
+    ctx.arc(offsetX, offsetY, 7.5 * CONSTANTS.SCALE, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    // Center Dot
+    ctx.beginPath();
+    ctx.arc(offsetX, offsetY, CONSTANTS.BALL_RADIUS * CONSTANTS.SCALE, 0, 2 * Math.PI);
+    ctx.fillStyle = "black";
+    ctx.fill();
+}
+
+
+
+function renderWalls(offsetX, offsetY) {
     if (!wallVertices) return;
 
-    const lineWidth = 20 * scaleResize;
-    const offsetAmount = (-lineWidth / 2) / (CONSTANTS.SCALE * scaleResize);
+    const lineWidth = 20;
+    const offsetAmount = (-lineWidth / 2) / (CONSTANTS.SCALE);
 
     ctx.strokeStyle = "#004404";
     ctx.lineWidth = lineWidth;
@@ -613,10 +663,10 @@ function renderWalls(offsetX, offsetY, scaleResize) {
         const nextVertex = offsetVertices[(i + 1) % offsetVertices.length];
 
         // Convert field coordinates to screen space
-        const x1 = offsetX + vertex.x * CONSTANTS.SCALE * scaleResize;
-        const y1 = offsetY + vertex.y * CONSTANTS.SCALE * scaleResize;
-        const x2 = offsetX + nextVertex.x * CONSTANTS.SCALE * scaleResize;
-        const y2 = offsetY + nextVertex.y * CONSTANTS.SCALE * scaleResize;
+        const x1 = offsetX + vertex.x * CONSTANTS.SCALE;
+        const y1 = offsetY + vertex.y * CONSTANTS.SCALE;
+        const x2 = offsetX + nextVertex.x * CONSTANTS.SCALE;
+        const y2 = offsetY + nextVertex.y * CONSTANTS.SCALE;
 
         if (i === 0) ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
@@ -627,36 +677,36 @@ function renderWalls(offsetX, offsetY, scaleResize) {
 }
 
 
-function renderObjects(offsetX, offsetY, scaleResize) {
+function renderObjects(offsetX, offsetY) {
     for (let id in objects) {
         const object = objects[id];
 
         ctx.save();
         ctx.translate(
-            object.position.x * CONSTANTS.SCALE * scaleResize + offsetX,
-            object.position.y * CONSTANTS.SCALE * scaleResize + offsetY
+            object.position.x * CONSTANTS.SCALE + offsetX,
+            object.position.y * CONSTANTS.SCALE + offsetY
         );
         ctx.rotate(object.angle || 0);
 
         if (object.type === "circle" || object.type === "ball") {
-            renderCircle(object, scaleResize);
+            renderCircle(object);
         } else if (object.type === "rectangle" || object.type === "car") {
-            renderRectangle(object, scaleResize);
+            renderRectangle(object);
         }
         if (object.name == "car" && object.boosting) {
-            renderBooster(object, scaleResize);
+            renderBooster(object);
         }
 
         ctx.restore();
     }
 }
 
-function renderBooster(car, scaleResize) {
-    const boosterLength = 50 * scaleResize; // Length of the booster
-    const boosterWidth = 30 * scaleResize; // Width of the booster
+function renderBooster(car) {
+    const boosterLength = 50; // Length of the booster
+    const boosterWidth = 30; // Width of the booster
 
     const backX = 0;
-    const backY = car.height * CONSTANTS.SCALE * scaleResize;
+    const backY = car.height * CONSTANTS.SCALE;
 
     const boosterPoints = [
         { x: backX - boosterWidth / 2, y: backY },
@@ -672,27 +722,27 @@ function renderBooster(car, scaleResize) {
     ctx.fillStyle = "#f5e63d"; // Color of the booster
     ctx.fill();
 }
-function renderCircle(object, scaleResize) {
+function renderCircle(object) {
     if (object.sprite) {
-        drawSprite(object, object.radius * 2 * CONSTANTS.SCALE * scaleResize);
+        drawSprite(object, object.radius * 2 * CONSTANTS.SCALE);
     } else {
         ctx.beginPath();
-        ctx.arc(0, 0, object.radius * CONSTANTS.SCALE * scaleResize, 0, 2 * Math.PI);
+        ctx.arc(0, 0, object.radius * CONSTANTS.SCALE, 0, 2 * Math.PI);
         ctx.fillStyle = object.color;
         ctx.fill();
     }
 }
 
-function renderRectangle(object, scaleResize) {
+function renderRectangle(object) {
     if (object.sprite) {
-        drawSprite(object, object.width * 2 * CONSTANTS.SCALE * scaleResize, object.height * 2 * CONSTANTS.SCALE * scaleResize);
+        drawSprite(object, object.width * 2 * CONSTANTS.SCALE, object.height * 2 * CONSTANTS.SCALE);
     } else {
         ctx.fillStyle = object.color;
         ctx.fillRect(
-            -object.width * CONSTANTS.SCALE * scaleResize,
-            -object.height * CONSTANTS.SCALE * scaleResize,
-            object.width * CONSTANTS.SCALE * scaleResize * 2,
-            object.height * CONSTANTS.SCALE * scaleResize * 2
+            -object.width * CONSTANTS.SCALE,
+            -object.height * CONSTANTS.SCALE,
+            object.width * CONSTANTS.SCALE * 2,
+            object.height * CONSTANTS.SCALE * 2
         );
     }
 }
@@ -796,16 +846,16 @@ class Renderer {
     animate(frameTime) {
         const deltaTime = frameTime - this.lastFrameTime;
         this.lastFrameTime = frameTime;
-    
+
         const timeSinceUpdate = Date.now() - this.lastServerUpdateTime;
         const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1);
-    
+
         for (let id in this.currentServerState) {
             if (!objects) continue;
             const object = objects[id];
             const prevState = this.previousServerState[id];
             const currState = this.currentServerState[id];
-    
+
             if (object) {
                 if (currState.interpolate) {
                     this.interpolateObject(object, prevState, currState, alpha);
@@ -813,32 +863,34 @@ class Renderer {
                     object.position = currState.position;
                     object.angle = currState.angle;
                 }
-            
+
                 // Camera follows our car with smooth lag
                 if (object.socketId == ourId) {
-                    const cameraLagFactor = 0.1; // Adjust to control lag effect
-                    camera.setPosition(Vec2(
-                        camera.position.x + cameraLagFactor * (object.position.x - camera.position.x),
-                        camera.position.y + cameraLagFactor * (object.position.y - camera.position.y)
-                    ));
+                    camera.setPosition(object.position);
+
+                    // const cameraLagFactor = 0.1; // Adjust to control lag effect
+                    // camera.setPosition(Vec2(
+                    //     camera.position.x + cameraLagFactor * (object.position.x - camera.position.x),
+                    //     camera.position.y + cameraLagFactor * (object.position.y - camera.position.y)
+                    // ));
                 }
             }
-            
+
         }
-    
+
         step(deltaTime);
-    
+
         if (performance.now() - this.lastFPSUpdate >= 1000) {
             this.FPS = 1000 / deltaTime;
             this.lastFPSUpdate = performance.now();
         }
-    
+
         ctx.font = "20px Arial";
         ctx.fillStyle = "black";
         ctx.fillText(`FPS: ${Math.round(this.FPS)}`, 10, 30);
-    
+
         requestAnimationFrame(this.animate);
     }
-    
+
 }
 

@@ -1,4 +1,23 @@
-1. Make pan, zoom camera with angle
-2. Make camera follow car in big field, optional angle, make car angle to mouse
+1. Make pan, zoom camera with angle []
+2. Make camera follow car in big field, optional angle, make car angle to mouse []
 - make cars small and ball big
 3. Make car a dot that mouse controls, either move camera when dot goes near screen edge, or make camera follow dot
+
+
+make rotation work []
+get first person cam working []
+try making ball roll more []
+remove speed multiplier and make new values []
+make field 2x as big and easier to pinch []
+make player not bounce off wall []
+make field lines []
+
+try small car big ball
+try mouse bump mode
+get smooth cam working
+
+1v1 zerotix when i have all modes implemented or at least just big field
+
+
+fix spawns
+fix bumping

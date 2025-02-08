@@ -9,7 +9,9 @@
 
     <script type="module">
         import * as CONSTANTS from "../shared/CONSTANTS.js";
+        import { Vec2 } from "../shared/Vec2.js";
         window.CONSTANTS = CONSTANTS;
+        window.Vec2 = Vec2;
     </script>
 
     <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
@@ -87,13 +89,13 @@
                     <input type="number" id="mouseRange" value="300">
                 </div>
 
-                <div class="setting">
+                <!-- <div class="setting">
                     <div>
                         <label for="speedMult">Speed Multiplier:</label>
                         <small>Controls the game speed</small>
                     </div>
                     <input type="number" id="speedMult" step="0.1" value="0.5">
-                </div>
+                </div> -->
 
                 <div class="setting">
                     <button id="leaveGame">Leave game</button>
@@ -195,7 +197,6 @@
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="Vec2.js" type="module"></script>
     <script src="Camera.js" type="module"></script>
     <script src="client.js" type="module" defer></script>
 </body>
