@@ -742,11 +742,11 @@ export default class Game {
                 player.car.body.applyLinearImpulse(forward.mul(this.FLIP_FORCE), player.car.body.getWorldCenter(), true);
                 player.flip = false;
 
-                let flipDistance = 100;
+                // let flipDistance = 100;
 
-                setTimeout(() => {
-                    player.car.body.setLinearVelocity(initialVel);
-                }, flipDistance)
+                // setTimeout(() => {
+                //     player.car.body.setLinearVelocity(initialVel);
+                // }, flipDistance)
 
                 if (this.gameStats?.players[player.id]) {
                     this.gameStats.players[player.id].flipsUsed++;
