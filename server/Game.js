@@ -3,7 +3,6 @@ import * as Const from "../shared/CONSTANTS.js";
 import planck from "planck-js";
 import { Vec2 } from "../shared/Vec2.js";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
-import { cos } from "@tensorflow/tfjs";
 
 function generateFourLetterString() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
