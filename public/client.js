@@ -195,17 +195,12 @@ socket.on("game start", () => {
 
 })
 socket.on("countdown", (countdown) => {
-    console.log("CD");
     countdownElement.style.display = null;
     countdownElement.textContent = countdown;
 
     if (countdown === 0) {
-        countdownElement.textContent = "Go!";
-
-        setTimeout(() => {
-            countdownElement.style.display = "none";
-        }, 1000);
-
+        countdownElement.textContent = "";
+        countdownElement.style.display = "none";
     }
 });
 
@@ -268,10 +263,8 @@ document.addEventListener('keyup', (e) => {
 
 document.addEventListener('mousemove', (event) => {
     if (document.pointerLockElement === canvas && !exittingPointerLock) {
-        socket.emit("mousemove", event.movementX, event.movementY);
+        socket.emit("mousemove", event.movementX, event.movementY, canvas.width, canvas.height);
     }
-
-    // socket.emit("mousemove", event.clientX, event.clientY, canvas.width, canvas.height);
 
 });
 
@@ -357,7 +350,6 @@ if (!storageSettings) {
 let usernameInp = document.getElementById("usernameInp");
 
 document.getElementById("mouseRange").value = settings.mouseRange;
-console.log(settings.sensitivity);
 document.getElementById("mouseSensitivity").value = settings.sensitivity;
 usernameInp.value = settings.username;
 
@@ -478,9 +470,7 @@ botsBtn.addEventListener("click", () => {
     `;
 
 
-    // Add event listeners to new buttons
-    document.getElementById("oneVOneBot").addEventListener("click", () => {
-
+    function startGame() {
         socket.emit("create game", (code) => {
             chatLog.value += "The game code is " + code + "\n";
             chatLog.value += "The game code is copied to clipboard!\n";
@@ -497,18 +487,33 @@ botsBtn.addEventListener("click", () => {
             socket.emit("settings", {
                 username: usernameInp.value
             });
+
+            restoreButtons(originalButtons);
+            inGame();
+
+            setTimeout(() => {
+                socket.emit("start");
+            }, 5000);
         });
 
+    }
+
+
+    // Add event listeners to new buttons
+    document.getElementById("oneVOneBot").addEventListener("click", () => {
+        startGame();
         socket.emit("bot", "red");
-        setTimeout(() => {
-            socket.emit("start");
-        }, 5000);
-
-        restoreButtons(originalButtons);
-
-
-
-        inGame();
+    });
+    document.getElementById("oneVTwoBots").addEventListener("click", () => {
+        startGame();
+        socket.emit("bot", "red");
+        socket.emit("bot", "red");
+    });
+    document.getElementById("oneVThreeBots").addEventListener("click", () => {
+        startGame();
+        socket.emit("bot", "red");
+        socket.emit("bot", "red");
+        socket.emit("bot", "red");
     });
 
 

@@ -48,11 +48,15 @@ When player touches the ball, enter defend mode
 
 
 
-Make preset game settings presets like only keyboard controls
-Make 1v1 bot with or without same controls as it on home page
+Make preset game settings presets like only keyboard controls []
+Make 1v1 bot with or without same controls as it on home page []
 
 add backwardsFlipsUsed to stats page
 
 1v1 someone with plan
 
-add backwards flip to controls
+add backwards flip to controls []
+
+find a gpt model that can handle the whole project, ask as a professional developer, to rewrite it
+
+make bots leave games and close games []

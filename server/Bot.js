@@ -17,11 +17,11 @@ export default class Bot {
 
 
         this.mode = Math.random() > 0.5 ? "Attack" : "Defend";
-        this.mode = "Defend";
 
         this.stage = "positioning";
 
         this.setup();
+
 
     }
 
@@ -29,6 +29,9 @@ export default class Bot {
 
     }
     step() {
+        console.log("BOT STEP");
+        if (!this.running) return;
+
         if (this.mode === "Attack") {
             let goalPos = this.player.team === "blue"
                 ? Vec2(CONSTANTS.FIELD_WIDTH / 2, 0)
@@ -59,7 +62,7 @@ export default class Bot {
                     this.right();
                     this.forward(false);
                 }
-                
+
                 if (carPos.distance(destination) <= 2) {
                     this.forward(false);
                     this.left(false);
@@ -210,7 +213,7 @@ export default class Bot {
                 const angleThreshold = 0.001; // Slightly increased threshold for smoother transition
 
                 if (
-                    (3 - Math.abs(angleDiff) < angleThreshold) && 
+                    (3 - Math.abs(angleDiff) < angleThreshold) &&
                     (Vec2(this.player.car.body.getLinearVelocity()).magnitude() <= 100)
                 ) {
                     if (this.leftOn) this.left(false);
@@ -263,7 +266,8 @@ export default class Bot {
             }
         }
 
-        if (this.running) setTimeout(this.step, 1000 / this.FPS);
+        setTimeout(this.step, 1000 / this.FPS);
+
     }
 
     start() {
@@ -271,7 +275,16 @@ export default class Bot {
     }
     stop() {
         this.running = false;
+
+        this.left(false);
+        this.right(false);
+        this.forward(false);
+        this.backward(false);
+        this.boost(false);
+        this.flip(false);
+        this.tightTurn(false);
     }
+
 
 
     left(on = true) {

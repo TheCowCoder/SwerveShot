@@ -3,6 +3,7 @@ import * as Const from "../shared/CONSTANTS.js";
 import planck from "planck-js";
 import { Vec2 } from "../shared/Vec2.js";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
+import { cos } from "@tensorflow/tfjs";
 
 function generateFourLetterString() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -144,16 +145,31 @@ export default class Game {
     startTimer() {
         this.gameTimer = setInterval(this.gameTimerFunc.bind(this), 1000);
     }
+    stopGame() {
+        clearInterval(this.gameTimer);
+        this.running = false;
+        this.io.to(this.id).emit("game timer", 0);
+        this.io.to(this.id).emit("game stats", this.gameStats);
+        this.gameStats = null;
+
+        for (let id in this.players) {
+            if (id in this.botManager.bots) {
+                this.botManager.bots[id].stop();
+            }
+        }
+    }
+
     gameTimerFunc() {
         this.remainingSeconds--;
-        if (this.remainingSeconds == 0) {
-            clearInterval(this.gameTimer);
-            this.running = false;
-            this.io.to(this.id).emit("game stats", this.gameStats);
-            this.gameStats = null;
-
+        if (this.remainingSeconds === 0) {
+            this.stopGame();
+        } else {
+            this.io.to(this.id).emit("game timer", this.remainingSeconds);
         }
-        this.io.to(this.id).emit("game timer", this.remainingSeconds);
+    }
+
+    end() {
+        this.stopGame();
     }
 
     start(initial = false) {
@@ -196,9 +212,6 @@ export default class Game {
 
         }
 
-        for (let id in this.players) {
-            console.log(id, this.players[id].team);
-        }
 
         let leftPlayerIds = Object.values(this.players).filter(p => p.team === "blue").map(obj => obj.id);
         let rightPlayerIds = Object.values(this.players).filter(p => p.team === "red").map(obj => obj.id);
@@ -225,7 +238,6 @@ export default class Game {
         ) {
             // 1v1
             let [spawns, _] = removeRandomItem(["left right", "top left bottom right", "bottom left top right"]);
-            console.log(leftPlayerIds, rightPlayerIds);
             if (spawns === "left right") {
                 let leftId;
                 [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
@@ -248,8 +260,6 @@ export default class Game {
                 [topRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
                 playerSpawns[topRightId] = CONSTANTS.topRight;
             }
-
-            // console.log("1v1 spawns", playerSpawns);
 
 
         } else if (
@@ -328,6 +338,8 @@ export default class Game {
         for (let id in this.players) {
             const player = this.players[id];
 
+            if (!playerSpawns[id]) playerSpawns[id] = player.team == "blue" ? CONSTANTS.farLeft : CONSTANTS.farRight;
+
             let spawnPos = playerSpawns[id][0];
             let spawnAngle = playerSpawns[id][1];
 
@@ -386,13 +398,7 @@ export default class Game {
 
     }
 
-    end() {
-        clearInterval(this.gameTimer);
-        this.running = false;
-        this.io.to(this.id).emit("game timer", 0);
-        this.io.to(this.id).emit("game stats", this.gameStats);
-        this.gameStats = null;
-    }
+
 
 
 
@@ -409,7 +415,18 @@ export default class Game {
 
         socket.leave(this.id);
 
-        if (Object.keys(this.players).length == 0) {
+        let playersLeft = false;
+
+        for (let id in this.players) {
+            if (!(id in this.botManager.bots)) {
+                playersLeft = true;
+                break;
+            }
+        }
+        if (!playersLeft) {
+            for (let id in this.players) {
+                this.botManager.bots[id].stop();
+            }
             this.renderer.stop();
             delete Game.instances[this.id];
         }
@@ -590,17 +607,25 @@ export default class Game {
 
                         // this.io.to(this.id).emit("debug dot", ballDest);
 
-
                         const carSpeed = Vec2(car.body.getLinearVelocity()).magnitude();
 
-                        const baseForce = 1.25; // Base force at low speeds
-                        const speedFactor = Math.min(carSpeed / 10, 2); // Allow it to grow up to 2 for higher speeds
-                        const adjustedForceFactor = baseForce * (0.5 + Math.pow(speedFactor, 1.5) * 0.5); // Progressive scaling
+                        const baseForce = 1.25;
+                        const speedFactor = Math.min(carSpeed / 10, 2);
+                        const adjustedForceFactor = baseForce * (0.5 + Math.pow(speedFactor, 1.5) * 0.5);
 
+                        // // Distance from ball to ballDest
+                        // const ballDist = Vec2(ballPos).distance(ballDest);
 
+                        // // Damping factor that decreases as ballDist increases
+                        // const k = 2; // Tune this constant as needed
+                        // let dampingFactor = 1 / (1 + k * ballDist);
+
+                        // console.log("DISTANCE DAMPING", dampingFactor);
+
+                        let dampingFactor = 1;
                         const force = {
-                            x: (ballDest.x - ballPos.x) * adjustedForceFactor,
-                            y: (ballDest.y - ballPos.y) * adjustedForceFactor
+                            x: (ballDest.x - ballPos.x) * adjustedForceFactor * dampingFactor,
+                            y: (ballDest.y - ballPos.y) * adjustedForceFactor * dampingFactor
                         };
 
                         this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
@@ -657,6 +682,27 @@ export default class Game {
         car.setLinearDamping(this.CAR_DAMPING);
         car.setAngularDamping(5.0); // Prevent uncontrolled spinning
 
+        let botCarSprite;
+        if (bot) {
+            let botCount = 1;
+            for (let id in this.players) {
+                if (this.players[id].bot && (this.players[id] != (bot ? bot.id : socket.id))) {
+                    botCount++;
+                }
+            }
+
+            if (botCount == 1) {
+                botCarSprite = "botTwo";
+            } else if (botCount == 2) {
+                botCarSprite = "botOne";
+            } else if (botCount == 3) {
+                botCarSprite = "carRed";
+            } else {
+                botCarSprite = "carRed";
+            }
+        }
+
+
         let carObj = this.createObject({
             name: "car",
             socketId: !bot ? socket.id : bot.id,
@@ -666,8 +712,9 @@ export default class Game {
             height: this.CAR_HEIGHT / 2,
             angle: 0,
             color: "black",
-            sprite: "carBlue"
+            sprite: botCarSprite ? botCarSprite : "carBlue"
         }, car);
+
 
         this.players[!bot ? socket.id : bot.id] = {
             bot: bot,
@@ -779,6 +826,7 @@ export default class Game {
 
 
     step() {
+        console.log("STEP");
         this.world.step(1 / this.FPS, this.VELOCITY_ITER, this.POSITION_ITER);
 
         for (let id in this.players) {
@@ -795,11 +843,22 @@ export default class Game {
             // Handle turning
             if (player.inputs["mousePos"]) {
 
-                let mouseAngle = Math.atan2(player.inputs["mousePos"].y, player.inputs["mousePos"].x);
-                let angleDiff = mouseAngle - carAngle;
+                let carPos = player.car.body.getPosition().clone();
+                let mousePos = player.inputs["mousePos"].mul(1 / CONSTANTS.SCALE).add(carPos);
 
-                // Normalize the angle difference to the range [-π, π]
-                angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
+                // this.io.to(this.id).emit("debug dot", mousePos);
+
+                // Compute the vector from the car to the mouse
+                let deltaX = mousePos.x - carPos.x;
+                let deltaY = mousePos.y - carPos.y;
+
+                // Get the angle to the mouse position
+                let mouseAngle = Math.atan2(deltaY, deltaX);
+
+                // Normalize the angle difference
+                let angleDiff = mouseAngle - carAngle;
+                angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)); // Ensures range [-π, π]
+
                 let turnPower = 25;
                 player.car.body.setAngularVelocity(angleDiff * turnPower);
 
@@ -872,6 +931,7 @@ export default class Game {
             }
 
             // Apply normal drive force
+
             if (!player.car.boosting && (player.inputs["ArrowUp"] || player.inputs["w"]) && !(player.inputs["ArrowDown"] || player.inputs["s"])) {
                 player.car.body.applyLinearImpulse(player.car.body.getWorldVector(Vec2(0, -1)).mul(this.DRIVE_FORCE), player.car.body.getWorldCenter(), true);
 
@@ -1006,12 +1066,9 @@ export default class Game {
     }
 
 
-    // mouseMove(id, x, y, w, h) {
-    //     this.players[id].inputs["mousePos"] = Vec2(x, y);
-    //     this.players[id].canvasSize = Vec2(w, h);
-    // }
 
-    mouseMove(id, dx, dy) {
+
+    mouseMove(id, dx, dy, w, h) {
         if (this.preset == "default" || this.preset == "mouseControls") {
             const player = this.players[id];
             if (!player.inputs["mousePos"]) player.inputs["mousePos"] = Vec2(0, 0);
@@ -1028,6 +1085,8 @@ export default class Game {
             this.io.to(id).emit("mouse pos", mousePos);
 
             this.players[id].inputs["mousePos"] = mousePos;
+            this.players[id].canvasWidth = w;
+            this.players[id].canvasHeight = h;
         }
     }
 
@@ -1044,6 +1103,7 @@ export default class Game {
     }
 
     keyDown(id, key) {
+
         let allow = false;
 
         if (this.preset == "default") {
@@ -1066,9 +1126,8 @@ export default class Game {
     }
 
     keyUp(id, key) {
-        if (this.players[id].inputs[key] !== undefined) {
-            this.players[id].inputs[key] = false;
-        }
+        this.players[id].inputs[key] = false;
+
     }
 
 
