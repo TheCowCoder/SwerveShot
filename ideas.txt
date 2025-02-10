@@ -60,3 +60,7 @@ add backwards flip to controls []
 find a gpt model that can handle the whole project, ask as a professional developer, to rewrite it
 
 make bots leave games and close games []
+
+
+add boosting to bots:
+if bot is certain distance from car, boost

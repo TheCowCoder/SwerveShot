@@ -825,7 +825,6 @@ export default class Game {
 
 
     step() {
-        console.log("STEP");
         this.world.step(1 / this.FPS, this.VELOCITY_ITER, this.POSITION_ITER);
 
         for (let id in this.players) {
@@ -858,7 +857,7 @@ export default class Game {
                 let angleDiff = mouseAngle - carAngle;
                 angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)); // Ensures range [-π, π]
 
-                let turnPower = 25;
+                let turnPower = 10;
                 player.car.body.setAngularVelocity(angleDiff * turnPower);
 
 

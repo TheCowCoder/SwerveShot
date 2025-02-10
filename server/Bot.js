@@ -29,7 +29,6 @@ export default class Bot {
 
     }
     step() {
-        console.log("BOT STEP");
         if (!this.running) return;
 
         if (this.mode === "Attack") {
@@ -265,6 +264,9 @@ export default class Bot {
                 }
             }
         }
+
+        let carPos = this.player.car.body.getPosition().clone();
+
 
         setTimeout(this.step, 1000 / this.FPS);
 
