@@ -5,9 +5,12 @@ import { Server } from "socket.io"; // Importing Server from socket.io
 import { fileURLToPath } from "url";
 import path from "path"; // Importing path module
 
-import pl, { Vec2 } from "planck-js"; // Importing planck-js
+
+import pl from "planck-js"; // Importing planck-js
+import { Vec2 } from "../shared/Vec2.js";
 import Game from "./Game.js";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
+import BotManager from "./BotManager.js";
 
 
 const PORT = process.env.PORT || 3000;
@@ -84,7 +87,7 @@ function chooseRandom(array) {
     return [choice, array];
 }
 function matchMade(_players, gameMode) {
-    let game = new Game(io, false);
+    let game = new Game(io, botManager, false);
 
     for (let id of _players) {
         const player = players[id];
@@ -94,18 +97,19 @@ function matchMade(_players, gameMode) {
 
     io.to(game.id).emit("match made");
 
+
     if (gameMode == "1v1") {
         let p1;
         [p1, _players] = chooseRandom(_players);
         let p2;
         [p2, _players] = chooseRandom(_players);
 
-        game.players[p1].team = "left";
-        game.players[p2].team = "right";
+        game.players[p1].team = "blue";
+        game.players[p2].team = "red";
 
         io.to(game.id).emit("object updates", {
-            [game.players[p1].car.id]: { sprite: game.players[p1].team === "left" ? "carBlue" : "carRed" },
-            [game.players[p2].car.id]: { sprite: game.players[p2].team === "left" ? "carBlue" : "carRed" }
+            [game.players[p1].car.id]: { sprite: game.players[p1].team === "blue" ? "carBlue" : "carRed" },
+            [game.players[p2].car.id]: { sprite: game.players[p2].team === "blue" ? "carBlue" : "carRed" }
         });
 
         setTimeout(() => {
@@ -123,16 +127,16 @@ function matchMade(_players, gameMode) {
         let p4;
         [p4, _players] = chooseRandom(_players);
 
-        game.players[p1].team = "left";
-        game.players[p2].team = "left";
-        game.players[p3].team = "right";
-        game.players[p4].team = "right";
+        game.players[p1].team = "blue";
+        game.players[p2].team = "blue";
+        game.players[p3].team = "red";
+        game.players[p4].team = "red";
 
         io.to(game.id).emit("object updates", {
-            [game.players[p1].car.id]: { sprite: game.players[p1].team === "left" ? "carBlue" : "carRed" },
-            [game.players[p2].car.id]: { sprite: game.players[p2].team === "left" ? "carBlue" : "carRed" },
-            [game.players[p3].car.id]: { sprite: game.players[p3].team === "left" ? "carBlue" : "carRed" },
-            [game.players[p4].car.id]: { sprite: game.players[p4].team === "left" ? "carBlue" : "carRed" }
+            [game.players[p1].car.id]: { sprite: game.players[p1].team === "blue" ? "carBlue" : "carRed" },
+            [game.players[p2].car.id]: { sprite: game.players[p2].team === "blue" ? "carBlue" : "carRed" },
+            [game.players[p3].car.id]: { sprite: game.players[p3].team === "blue" ? "carBlue" : "carRed" },
+            [game.players[p4].car.id]: { sprite: game.players[p4].team === "blue" ? "carBlue" : "carRed" }
         });
 
         setTimeout(() => {
@@ -156,22 +160,22 @@ function matchMade(_players, gameMode) {
         [p6, _players] = chooseRandom(_players);
 
 
-        game.players[p1].team = "left";
-        game.players[p2].team = "left";
-        game.players[p3].team = "left";
+        game.players[p1].team = "blue";
+        game.players[p2].team = "blue";
+        game.players[p3].team = "blue";
 
-        game.players[p4].team = "right";
-        game.players[p5].team = "right";
-        game.players[p6].team = "right";
+        game.players[p4].team = "red";
+        game.players[p5].team = "red";
+        game.players[p6].team = "red";
 
         io.to(game.id).emit("object updates", {
-            [game.players[p1].car.id]: { sprite: game.players[p1].team === "left" ? "carBlue" : "carRed" },
-            [game.players[p2].car.id]: { sprite: game.players[p2].team === "left" ? "carBlue" : "carRed" },
-            [game.players[p3].car.id]: { sprite: game.players[p3].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p1].car.id]: { sprite: game.players[p1].team === "blue" ? "carBlue" : "carRed" },
+            [game.players[p2].car.id]: { sprite: game.players[p2].team === "blue" ? "carBlue" : "carRed" },
+            [game.players[p3].car.id]: { sprite: game.players[p3].team === "blue" ? "carBlue" : "carRed" },
 
-            [game.players[p4].car.id]: { sprite: game.players[p4].team === "left" ? "carBlue" : "carRed" },
-            [game.players[p5].car.id]: { sprite: game.players[p5].team === "left" ? "carBlue" : "carRed" },
-            [game.players[p6].car.id]: { sprite: game.players[p6].team === "left" ? "carBlue" : "carRed" },
+            [game.players[p4].car.id]: { sprite: game.players[p4].team === "blue" ? "carBlue" : "carRed" },
+            [game.players[p5].car.id]: { sprite: game.players[p5].team === "blue" ? "carBlue" : "carRed" },
+            [game.players[p6].car.id]: { sprite: game.players[p6].team === "blue" ? "carBlue" : "carRed" },
         });
 
         setTimeout(() => {
@@ -180,6 +184,8 @@ function matchMade(_players, gameMode) {
 
     }
 }
+
+const botManager = new BotManager();
 
 io.on("connection", (socket) => {
     console.log("A user connected!", socket.id);
@@ -194,13 +200,27 @@ io.on("connection", (socket) => {
 
     socket.emit("your id", socket.id);
 
+    socket.on("bot", (team) => {
+        let game = players[socket.id].game;
+        if (game) {
+            let bot = botManager.makeBot(game, io);
+            bot.player.team = team;
+            io.to(players[socket.id].game.id).emit("object updates", { [game.players[bot.id].car.id]: { sprite: team === "blue" ? "carBlue" : "carRed" } });
+        }
+    });
+
+    socket.on("bs", () => {
+        let bot = botManager.bots[Object.keys(botManager.bots)[0]];
+        bot.step();
+    });
+
     socket.on("time", (remainingSeconds) => {
         if (players[socket.id].game) players[socket.id].game.remainingSeconds = remainingSeconds;
     })
 
     socket.on("chat", msg => {
         let sender;
-        if (players[socket.id].game?.players[socket.id].team == "left") {
+        if (players[socket.id].game?.players[socket.id].team == "blue") {
             sender = "Blue";
         } else {
             sender = "Red";
@@ -208,9 +228,6 @@ io.on("connection", (socket) => {
         if (players[socket.id].game) io.to(players[socket.id].game.id).emit("chat", sender, msg)
     });
     socket.on("queue", (gameMode) => {
-        console.log("QUEUE request, gamemode", gameMode);
-        console.log("Queue:", queue);
-
         queue[socket.id] = {
             gameMode,
             avgMMR: players[socket.id].MMR,
@@ -227,7 +244,6 @@ io.on("connection", (socket) => {
 
         matchmake();
 
-        console.log("After queue:", queue);
     });
 
     socket.on("settings", (settings, cb) => {
@@ -262,15 +278,16 @@ io.on("connection", (socket) => {
     socket.on("team", team => {
         if (!players[socket.id].game?.privateMatch) return;
 
-        if (team === "left" || team === "right") {
+        if (team === "blue" || team === "red") {
             players[socket.id].game.players[socket.id].team = team;
-            io.to(players[socket.id].game.id).emit("object updates", { [players[socket.id].game.players[socket.id].car.id]: { sprite: team === "left" ? "carBlue" : "carRed" } });
+            io.to(players[socket.id].game.id).emit("object updates", { [players[socket.id].game.players[socket.id].car.id]: { sprite: team === "blue" ? "carBlue" : "carRed" } });
         }
     });
 
     socket.on("create game", (cb) => {
-        players[socket.id].game = new Game(io, true);
+        players[socket.id].game = new Game(io, botManager, true);
         players[socket.id].game.playerJoined(socket);
+
         cb(players[socket.id].game.code);
     });
 
@@ -321,9 +338,9 @@ io.on("connection", (socket) => {
 
         for (let _id in players[id].game.players) {
             const player = players[id].game.players[_id];
-            if (player.team == "left") {
+            if (player.team == "blue") {
                 playersLeft = true;
-            } else if (player.team == "right") {
+            } else if (player.team == "red") {
                 playersRight = true;
             }
         }
@@ -392,10 +409,6 @@ io.on("connection", (socket) => {
 
 });
 
-
-// server.listen(PORT, () => {
-//     console.log("Listening on port", PORT);
-// });
 
 
 server.listen(PORT, "0.0.0.0", () => {

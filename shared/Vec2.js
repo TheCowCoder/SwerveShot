@@ -9,6 +9,14 @@ export class Vec2Class {
             this.y = y;
         }
     }
+    
+    dot(vec) {
+        return this.x * vec.x + this.y * vec.y;
+    }
+
+    distance(vec) {
+        return Math.sqrt((this.x - vec.x) ** 2 + (this.y - vec.y) ** 2);
+    }
 
     add(vec) {
         return new Vec2Class(this.x + vec.x, this.y + vec.y);

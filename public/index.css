@@ -1,4 +1,12 @@
 
+#redBotBtn {
+    background-color: #e0005d;
+    color: white;
+}
+#blueBotBtn {
+    background-color: #1158ff;
+    color: white;
+}
 
 #username {
     margin-top: 20px;
@@ -130,6 +138,7 @@
 .setting div {
     display: flex;
     flex-wrap: wrap;
+    flex-direction: row;
 }
 
 label,
@@ -141,19 +150,6 @@ small {
 small {
     display: block;
     /* Makes it wrap to the next line */
-}
-
-#saveBtn {
-    position: absolute;
-    right: 20px;
-    bottom: 20px;
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    border: none;
-    border-radius: 8px;
 }
 
 
@@ -199,24 +195,41 @@ small {
     align-items: center;
     z-index: 9999;
 }
-
-
-.setting>div {
-    display: flex;
-    flex-direction: column;
+#mouseRangeDiv {
+    flex-direction: column !important;
 }
 
-/* Settings container */
+
 .settings-container {
+    position: relative; /* Ensures absolute positioning works inside */
     background-color: white;
     padding: 20px;
     border-radius: 8px;
     min-width: 400px;
     text-align: left;
     max-width: 600px;
-    position: relative;
     height: 600px;
-    overflow-y: scroll;
+    overflow-y: auto;
+    font-size: 20px;
+}
+
+
+#saveBtnContainer {
+    position: sticky;
+    bottom: 10px;
+    display: flex;
+    justify-content: flex-end; /* Aligns the button to the right */
+    width: 100%;
+}
+
+#saveBtn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
 }
 
 .settings-container h2 {
@@ -239,6 +252,11 @@ small {
     margin-bottom: 15px;
 }
 
+.setting small {
+    color: #888;
+    font-size: 15px;
+}
+
 .setting label {
     width: 180px;
     margin-right: 10px;
@@ -253,10 +271,7 @@ small {
     width: 150px;
 }
 
-.setting small {
-    font-size: 12px;
-    color: #888;
-}
+
 
 #closeBtn {
     background-color: #ff9f98;

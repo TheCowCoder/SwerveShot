@@ -58,9 +58,37 @@
         <div class="settings-container">
             <h2>Settings</h2>
 
-            <!-- Gameplay Category -->
+            <div class="category">
+                <h3>Controls</h3>
+                <div>
+                    <ul>
+                        <li>Move mouse = Aim car</li>
+                        <li>WASD = Move car around</li>
+                        <li>Left click (or F) = Flip</li>
+                        <li>Space (or Right click) = Boost</li>
+                        <li>Scroll = Zoom in or out</li>
+                    </ul>
+                    
+                    <strong>Keyboard mode</strong>
+                    <ul>
+                        <li>Arrow keys = Drive car</li>
+                        <li>WASD = Move car around</li>
+                        <li>Space = Boost</li>
+                        <li>F = Flip</li>
+                        <li>Shift = Tight turn</li>
+                    </ul>
+                </div>
+            </div>
             <div class="category">
                 <h3>Gameplay</h3>
+
+                <div class="setting">
+                    <label for="bots">Bots:</label>
+                    <div id="bots">
+                        <button id="spawnBlueBot">Blue Bot</button>
+                        <button id="spawnRedBot">Red Bot</button>
+                    </div>
+                </div>
                 <div class="setting">
                     <button id="startGame" class="start-btn">Start Game</button>
                     <button id="endGame" class="end-btn">End Game</button>
@@ -69,8 +97,8 @@
                 <div class="setting">
                     <label for="team">Team:</label>
                     <select id="team">
-                        <option value="left">Left</option>
-                        <option value="right">Right</option>
+                        <option value="blue">Left</option>
+                        <option value="red">Right</option>
                     </select>
                 </div>
 
@@ -81,7 +109,7 @@
                 </div>
 
                 <div class="setting">
-                    <div>
+                    <div id="mouseRangeDiv">
                         <label for="mouseRange">Mouse Range:</label>
                         <small>How far the mouse can travel from the car</small>
                     </div>
@@ -89,42 +117,15 @@
                     <input type="number" id="mouseRange" value="300">
                 </div>
 
-                <!-- <div class="setting">
-                    <div>
-                        <label for="speedMult">Speed Multiplier:</label>
-                        <small>Controls the game speed</small>
-                    </div>
-                    <input type="number" id="speedMult" step="0.1" value="0.5">
-                </div> -->
-
                 <div class="setting">
                     <button id="leaveGame">Leave game</button>
                 </div>
             </div>
-            <div class="category">
-                <h3>Controls</h3>
-                <div>
-                    <ul>
-                        <li>Scroll = Zoom in or out</li>
-                        <li>Arrow keys = Move</li>
-                        <li>Space = Boost</li>
-                        <li>F = Flip</li>
-                        <li>Shift = Tight turn</li>
-                    </ul>
-                    <br>
-                    <strong>Mouse control mode:</strong>
-                    <ul>
-                        <li>Click the screen to enable</li>
-                        <li>Move mouse = Aim car</li>
-                        <li>WASD = Move around</li>
-                        <li>Left click = Flip</li>
-                        <li>Right click = Boost</li>
-                    </ul>
-                </div>
+
+            <div id="saveBtnContainer">
+                <button id="saveBtn">Save</button>
+
             </div>
-
-
-            <button id="saveBtn">Save</button>
             <button id="closeBtn">Close</button>
         </div>
     </div>

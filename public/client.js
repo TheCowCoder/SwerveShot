@@ -53,8 +53,13 @@ let ourId;
 let mousePos;
 let settings;
 
+let debugDot;
+
+socket.on("debug dot", (pos) => {
+    pos = Vec2(pos.x * CONSTANTS.SCALE + canvas.width / 2, pos.y * CONSTANTS.SCALE + canvas.height / 2);
+    debugDot = pos;
+});
 socket.on("game stats", (stats) => {
-    console.log("game stats", stats);
 
     // Set game type
     document.getElementById("gameType").textContent = stats.type;
@@ -79,7 +84,7 @@ socket.on("game stats", (stats) => {
             <td>${playerData.boostUsed}</td>
         `;
 
-        if (playerData.team === "left") {
+        if (playerData.team === "blue") {
             leftStatsBody.appendChild(statsRow);
         } else {
             rightStatsBody.appendChild(statsRow);
@@ -170,7 +175,6 @@ function copyToClipboard(text) {
     textarea.select();
     document.execCommand("copy");
     document.body.removeChild(textarea);
-    console.log("Copied to clipboard: " + text);
 }
 
 
@@ -217,11 +221,11 @@ socket.on("game timer", remainingSeconds => {
 })
 
 socket.on("goal", team => {
-    if (team === "left") {
+    if (team === "blue") {
         let rightScoreElement = document.getElementById("rightScore");
         let currentScore = parseInt(rightScoreElement.innerText);
         rightScoreElement.innerText = currentScore + 1;
-    } else if (team === "right") {
+    } else if (team === "red") {
         let leftScoreElement = document.getElementById("leftScore");
         let currentScore = parseInt(leftScoreElement.innerText);
         leftScoreElement.innerText = currentScore + 1;
@@ -236,19 +240,30 @@ socket.on("goal", team => {
 // #region Document events
 document.getElementById("game").style.display = "none";
 
+
+let leftLateralIndicator;
+let rightLateralIndicator;
+
 document.addEventListener('keydown', (e) => {
     if (!e.repeat) socket.emit("keydown", e.key);
     if (e.key === "Escape") {
         customScale = false;
         scaleBtn.style.display = "none";
         camera.setScale(1);
-    } else if (e.key == "0") {
-
+    } else if (e.key == "a") {
+        leftLateralIndicator = true;
+    } else if (e.key == "d") {
+        rightLateralIndicator = true;
     }
 });
 
 document.addEventListener('keyup', (e) => {
     if (!e.repeat) socket.emit("keyup", e.key);
+    if (e.key == "a") {
+        leftLateralIndicator = false;
+    } else if (e.key == "d") {
+        rightLateralIndicator = false;
+    }
 });
 
 document.addEventListener('mousemove', (event) => {
@@ -279,6 +294,17 @@ document.addEventListener("wheel", (e) => {
 
 // #region UI Control
 
+let blueBotBtn = document.getElementById("spawnBlueBot");
+let redBotBtn = document.getElementById("spawnRedBot");
+
+blueBotBtn.addEventListener("click", () => {
+    socket.emit("bot", "blue");
+});
+redBotBtn.addEventListener("click", () => {
+    socket.emit("bot", "red");
+});
+
+
 const defaultSettings = {
     mouseRange: 300,
     sensitivity: 1.75,
@@ -291,7 +317,6 @@ let storageSettings = localStorage.getItem('settings');
 if (!storageSettings) {
     // If not found, store default settings
     localStorage.setItem('settings', JSON.stringify(defaultSettings));
-    console.log("SET", JSON.stringify(defaultSettings))
     settings = defaultSettings;
 } else {
     settings = JSON.parse(storageSettings);
@@ -314,7 +339,6 @@ let overlay = document.getElementById("overlay");
 let closeBtn = document.getElementById("closeBtn");
 
 settingsBtn.addEventListener("click", () => {
-    console.log("visuble");
     overlay.style.display = "flex"; // Show overlay
 });
 
@@ -381,6 +405,10 @@ chatInput.addEventListener("keydown", function (e) {
                 socket.emit("time", parseInt(args[0]));
             } else if (cmd == "s") {
                 document.getElementById("gameStatsPopup").style.display = "block";
+            } else if (cmd == "bot") {
+                socket.emit("bot");
+            } else if (cmd == "bs") {
+                socket.emit("bs");
             }
         } else {
             socket.emit("chat", msg);
@@ -532,13 +560,12 @@ function restoreButtons(originalHTML) {
 
 
 const spriteCache = {};
-
-// Render the world to the canvas
 function renderWorld() {
+    ctx.save(); // Save the current transformation state
     ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
     ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+    ctx.restore(); // Restore the saved transformation state
 
-    camera.applyTransform(ctx); // Apply camera transformations
 
     // Define field dimensions and scaling
     const fieldWidth = CONSTANTS.FIELD_WIDTH * CONSTANTS.SCALE;
@@ -552,11 +579,20 @@ function renderWorld() {
     renderWalls(offsetX, offsetY);
     renderObjects(offsetX, offsetY);
 
+    if (debugDot) {
+        ctx.beginPath();
+        ctx.arc(debugDot.x, debugDot.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+        ctx.closePath();
+    }
+
+
+    // Draw mouse position dot
     if (mousePos) {
         for (let id in objects) {
             const object = objects[id];
             if (object.socketId == ourId) {
-                // Draw a small red dot
                 ctx.beginPath();
                 ctx.arc(mousePos.x + (canvas.width / 2) + (object.position.x * CONSTANTS.SCALE), mousePos.y + (canvas.height / 2) + (object.position.y * CONSTANTS.SCALE), 7.5, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
                 ctx.fillStyle = "#4bff3b";
@@ -565,7 +601,10 @@ function renderWorld() {
             }
         }
     }
+
+
 }
+
 
 function renderFieldLines(offsetX, offsetY) {
     const lineWidth = 5;
@@ -759,11 +798,12 @@ function drawSprite(object, width, height = width) {
     }
 }
 
-
-
-
 function step() {
+    camera.applyTransform(ctx);
+
     renderWorld();
+
+
     let ourCar;
     for (let id in objects) {
         const obj = objects[id];
@@ -773,7 +813,6 @@ function step() {
     }
 
 
-    camera.applyTransform(ctx);
 }
 
 
@@ -868,11 +907,12 @@ class Renderer {
                 if (object.socketId == ourId) {
                     camera.setPosition(object.position);
 
-                    // const cameraLagFactor = 0.1; // Adjust to control lag effect
+                    // const cameraLagFactor = 0.05; // Adjust to control lag effect
                     // camera.setPosition(Vec2(
                     //     camera.position.x + cameraLagFactor * (object.position.x - camera.position.x),
                     //     camera.position.y + cameraLagFactor * (object.position.y - camera.position.y)
                     // ));
+
                 }
             }
 
@@ -887,7 +927,7 @@ class Renderer {
 
         ctx.font = "20px Arial";
         ctx.fillStyle = "black";
-        ctx.textAlign = "left";
+        ctx.textAlign = "blue";
         ctx.textBaseline = "top";
 
         let topLeft = camera.screenToWorld(Vec2(10, 10));
