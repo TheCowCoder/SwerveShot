@@ -95,7 +95,7 @@ export default class Game {
         // this.CAR_RESTITUTION = 1;
         this.CAR_RESTITUTION = 0;
 
-        this.BALL_DENSITY = 0.5 - 0.125;
+        this.BALL_DENSITY = 0.5;
         this.BALL_FRICTION = 0;
         this.BALL_RESTITUTION = 1.1;
 
@@ -104,7 +104,7 @@ export default class Game {
         // this.WALL_RESTITUTION = 0.5;
         this.WALL_RESTITUTION = 1;
 
-        this.WALL_CORNER_RADIUS = 5 * 1.5;
+        this.WALL_CORNER_RADIUS = 10;
         this.WALL_CORNER_SEGMENTS = 25 * 1.5;
 
 
@@ -369,7 +369,7 @@ export default class Game {
                 this.players[id].movementLocked = false;
             }
 
-            if (initial) this.remainingSeconds = 60 * 4;
+            if (initial) this.remainingSeconds = 60 * 3;
 
             this.io.to(this.id).emit("game timer", this.remainingSeconds);
             this.startTimer();
@@ -608,7 +608,7 @@ export default class Game {
 
                         const carSpeed = Vec2(car.body.getLinearVelocity()).magnitude();
 
-                        const baseForce = 1.25;
+                        const baseForce = 1.5;
                         const speedFactor = Math.min(carSpeed / 10, 2);
                         const adjustedForceFactor = baseForce * (0.5 + Math.pow(speedFactor, 1.5) * 0.5);
 

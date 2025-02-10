@@ -22,7 +22,7 @@ export default class Bot {
 
         this.setup();
 
-
+        this.botDest = null;
     }
 
     setup() {
@@ -30,6 +30,7 @@ export default class Bot {
     }
     step() {
         if (!this.running) return;
+
 
         if (this.mode === "Attack") {
             let goalPos = this.player.team === "blue"
@@ -42,8 +43,8 @@ export default class Bot {
 
             if (this.stage === "positioning") {
                 let toBall = ballPos.sub(goalPos).normalize();
-                let destination = ballPos.add(toBall.mul(CONSTANTS.BALL_RADIUS + CONSTANTS.CAR_HEIGHT / 2 + 0.5));
-                let angleToDest = Math.atan2(destination.y - carPos.y, destination.x - carPos.x);
+                this.botDest = ballPos.add(toBall.mul(CONSTANTS.BALL_RADIUS + CONSTANTS.CAR_HEIGHT / 2 + 0.5));
+                let angleToDest = Math.atan2(this.botDest.y - carPos.y, this.botDest.x - carPos.x);
                 let angleDiff = Math.atan2(Math.sin(angleToDest - carAngle), Math.cos(angleToDest - carAngle));
 
                 const angleThreshold = 0.001;
@@ -62,7 +63,7 @@ export default class Bot {
                     this.forward(false);
                 }
 
-                if (carPos.distance(destination) <= 2) {
+                if (carPos.distance(this.botDest) <= 2) {
                     this.forward(false);
                     this.left(false);
                     this.right(false);
@@ -137,47 +138,17 @@ export default class Bot {
             let carDistToGoal = carPos.distance(goalPos);
             let ballDistToGoal = ballPos.distance(goalPos);
 
-            let defendPos;
             if (carDistToGoal > ballDistToGoal) {
                 // Car is behind the ball, so just go to the ball
-                defendPos = ballPos.clone();
+                this.botDest = ballPos.clone();
             } else {
                 // Otherwise, move to the projected point
-                defendPos = projectedPoint;
+                this.botDest = projectedPoint.clone();
             }
 
 
-
-            // // // Vector from goal to ball
-            // // let goalToBall = ballPos.sub(goalPos).normalize();
-
-            // // // Perpendicular direction (90-degree rotation)
-            // // let perpDir = Vec2(-goalToBall.y, goalToBall.x);
-
-            // // // Find intersection of the goal-to-ball line and the perpendicular line through carPos
-            // // let t = (carPos.sub(goalPos)).dot(goalToBall); // Projection of carPos onto goalToBall line
-            // // let defendPos = goalPos.add(goalToBall.mul(t)); // Intersection point
-
-
-            // // Step 1: Compute the slope of the line connecting goal to ball
-            // let goalToBallDir = ballPos.sub(goalPos);
-            // let slope1 = goalToBallDir.y / goalToBallDir.x; // Slope of goal-to-ball line
-
-            // // Step 2: Find perpendicular slope (negative reciprocal)
-            // let slope2 = -1 / slope1;
-
-            // // Step 3: Compute intersection of both lines
-            // // Equation of line 1: y = slope1 * (x - goalPos.x) + goalPos.y
-            // // Equation of line 2: y = slope2 * (x - carPos.x) + carPos.y
-
-            // let xIntersect = (slope1 * goalPos.x - slope2 * carPos.x + carPos.y - goalPos.y) / (slope1 - slope2);
-            // let yIntersect = slope1 * (xIntersect - goalPos.x) + goalPos.y;
-
-            // let defendPos = Vec2(xIntersect, yIntersect);
-
-
             if (this.stage === "positioning") {
-                let toDefendPos = Math.atan2(defendPos.y - carPos.y, defendPos.x - carPos.x);
+                let toDefendPos = Math.atan2(this.botDest.y - carPos.y, this.botDest.x - carPos.x);
                 let angleDiff = Math.atan2(Math.sin(toDefendPos - carAngle), Math.cos(toDefendPos - carAngle));
 
                 const angleThreshold = 0.001;
@@ -196,7 +167,7 @@ export default class Bot {
                 }
 
 
-                if (carPos.distance(defendPos) <= 3) {
+                if (carPos.distance(this.botDest) <= 3) {
                     this.forward(false);
                     this.right(false);
                     this.left(false);
@@ -264,9 +235,16 @@ export default class Bot {
                 }
             }
         }
+        let carPos = Vec2(this.player.car.body.getPosition());
 
-        let carPos = this.player.car.body.getPosition().clone();
+        let dist = carPos.distance(this.botDest);
+        let boostThreshold = 10;
 
+        if (dist > boostThreshold) {
+            this.boost();
+        } else {
+            this.boost(false);
+        }
 
         setTimeout(this.step, 1000 / this.FPS);
 

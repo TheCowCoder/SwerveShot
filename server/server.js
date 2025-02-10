@@ -206,10 +206,17 @@ io.on("connection", (socket) => {
         players[socket.id].game.applyPreset(preset);
     });
 
-    socket.on("bot", () => {
+    socket.on("bot", (team) => {
         let game = players[socket.id].game;
         if (game) {
             let bot = botManager.makeBot(game, io);
+            bot.player.team = team;
+            io.to(game.id).emit("object updates", {
+                [bot.player.car.id]: {
+                    team: team,
+                    sprite: team == "blue" ? "carBlue" : bot.player.car.sprite
+                }
+            });
         }
     });
 
