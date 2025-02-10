@@ -122,12 +122,21 @@ export default class Game {
 
         this.running = false;
 
-
-
         this.gameStats = null;
+
+        this.preset = "default";
     }
 
+    applyPreset(preset) {
+        this.preset = preset;
+        if (preset == "arrowKeysF") {
 
+        } else if (preset == "keyboardControls") {
+
+        } else if (preset == "mouseControls") {
+
+        }
+    }
 
     pauseTimer() {
         clearInterval(this.gameTimer);
@@ -187,6 +196,10 @@ export default class Game {
 
         }
 
+        for (let id in this.players) {
+            console.log(id, this.players[id].team);
+        }
+
         let leftPlayerIds = Object.values(this.players).filter(p => p.team === "blue").map(obj => obj.id);
         let rightPlayerIds = Object.values(this.players).filter(p => p.team === "red").map(obj => obj.id);
 
@@ -212,7 +225,7 @@ export default class Game {
         ) {
             // 1v1
             let [spawns, _] = removeRandomItem(["left right", "top left bottom right", "bottom left top right"]);
-
+            console.log(leftPlayerIds, rightPlayerIds);
             if (spawns === "left right") {
                 let leftId;
                 [leftId, leftPlayerIds] = removeRandomItem(leftPlayerIds);
@@ -235,6 +248,8 @@ export default class Game {
                 [topRightId, rightPlayerIds] = removeRandomItem(rightPlayerIds);
                 playerSpawns[topRightId] = CONSTANTS.topRight;
             }
+
+            // console.log("1v1 spawns", playerSpawns);
 
 
         } else if (
@@ -661,7 +676,7 @@ export default class Game {
             car: carObj,
             flip: true,
             backwardsFlip: true,
-            team: "blue",
+            team: !bot ? "blue" : "red",
             settings: {
                 mouseRange: 300,
                 sensitivity: 1.75,
@@ -822,7 +837,9 @@ export default class Game {
 
             if (player.inputs["r"] && player.backwardsFlip) {
                 // flipped = true
-                player.car.body.applyLinearImpulse(forward.mul(-this.FLIP_FORCE + 1.25), player.car.body.getWorldCenter(), true);
+                this.FLIP_FORCE = 75 * 0.75 * (0.75 + 0.125);
+
+                player.car.body.applyLinearImpulse(forward.mul(-this.FLIP_FORCE * 1.25), player.car.body.getWorldCenter(), true);
                 player.backwardsFlip = false;
 
                 if (this.gameStats?.players[player.id]) {
@@ -857,8 +874,10 @@ export default class Game {
             // Apply normal drive force
             if (!player.car.boosting && (player.inputs["ArrowUp"] || player.inputs["w"]) && !(player.inputs["ArrowDown"] || player.inputs["s"])) {
                 player.car.body.applyLinearImpulse(player.car.body.getWorldVector(Vec2(0, -1)).mul(this.DRIVE_FORCE), player.car.body.getWorldCenter(), true);
+
             } else if ((player.inputs["ArrowDown"] || player.inputs["s"]) && !(player.inputs["ArrowUp"] || player.inputs["w"])) {
                 player.car.body.applyLinearImpulse(player.car.body.getWorldVector(Vec2(0, 1)).mul(this.DRIVE_FORCE), player.car.body.getWorldCenter(), true);
+
             }
 
             // Allow lateral movement even when boosting
@@ -993,36 +1012,65 @@ export default class Game {
     // }
 
     mouseMove(id, dx, dy) {
-        const player = this.players[id];
-        if (!player.inputs["mousePos"]) player.inputs["mousePos"] = Vec2(0, 0);
+        if (this.preset == "default" || this.preset == "mouseControls") {
+            const player = this.players[id];
+            if (!player.inputs["mousePos"]) player.inputs["mousePos"] = Vec2(0, 0);
 
-        let sens = player.settings.sensitivity;
-        let mousePos = player.inputs["mousePos"].add(Vec2(dx * sens, dy * sens));
+            let sens = player.settings.sensitivity;
+            let mousePos = player.inputs["mousePos"].add(Vec2(dx * sens, dy * sens));
 
-        let mouseDir = Vec2(mousePos).normalize();
-        let mouseRange = player.settings.mouseRange;
-        if (mousePos.magnitude() > mouseRange) {
-            mousePos = mouseDir.mul(mouseRange);
+            let mouseDir = Vec2(mousePos).normalize();
+            let mouseRange = player.settings.mouseRange;
+            if (mousePos.magnitude() > mouseRange) {
+                mousePos = mouseDir.mul(mouseRange);
+            }
+
+            this.io.to(id).emit("mouse pos", mousePos);
+
+            this.players[id].inputs["mousePos"] = mousePos;
         }
-
-        this.io.to(id).emit("mouse pos", mousePos);
-
-        this.players[id].inputs["mousePos"] = mousePos;
     }
+
     mouseDown(id, button) {
-        this.players[id].inputs[`mouse${button}`] = true;
+        if (this.preset == "default" || this.preset == "mouseControls") {
+            this.players[id].inputs[`mouse${button}`] = true;
+        }
     }
+
     mouseUp(id, button) {
-        this.players[id].inputs[`mouse${button}`] = false;
+        if (this.preset == "default" || this.preset == "mouseControls") {
+            this.players[id].inputs[`mouse${button}`] = false;
+        }
     }
 
     keyDown(id, key) {
-        this.players[id].inputs[key] = true;
+        let allow = false;
+
+        if (this.preset == "default") {
+            allow = true; // Default allows all inputs
+        } else if (this.preset == "keyboardControls") {
+            if (["w", "a", "s", "d", "f", "r", " ", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Shift"].includes(key)) {
+                allow = true;
+            }
+        } else if (this.preset == "mouseControls") {
+            if (["w", "a", "s", "d", "f", "r", " "].includes(key)) {
+                allow = true;
+            }
+        } else if (this.preset == "arrowKeysFR") {
+            if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "f", "r"].includes(key)) {
+                allow = true;
+            }
+        }
+
+        if (allow) this.players[id].inputs[key] = true;
     }
 
     keyUp(id, key) {
-        this.players[id].inputs[key] = false;
+        if (this.players[id].inputs[key] !== undefined) {
+            this.players[id].inputs[key] = false;
+        }
     }
+
 
 }
 

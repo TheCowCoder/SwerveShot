@@ -29,10 +29,12 @@
                 <button class="menu-btn" id="oneVOneBtn"><span>1v1</span></button>
                 <button class="menu-btn" id="twoVTwoBtn"><span>2v2</span></button>
                 <button class="menu-btn" id="threeVThreeBtn"><span>3v3</span></button>
+            </div>
+            <div>
+                <button class="menu-btn" id="privateBtn"><span>Private</span></button>
+                <button class="menu-btn" id="botsBtn"><span>Bots!</span></button>
 
             </div>
-
-            <button class="menu-btn" id="privateBtn"><span>Private</span></button>
         </div>
 
         <div id="searching">
@@ -65,6 +67,7 @@
                         <li>Move mouse = Aim car</li>
                         <li>WASD = Move car around</li>
                         <li>Left click (or F) = Flip</li>
+                        <li>R = Backwards flip</li>
                         <li>Space (or Right click) = Boost</li>
                         <li>Scroll = Zoom in or out</li>
                     </ul>
@@ -75,13 +78,25 @@
                         <li>WASD = Move car around</li>
                         <li>Space = Boost</li>
                         <li>F = Flip</li>
+                        <li>R = Backwards flip</li>
                         <li>Shift = Tight turn</li>
                     </ul>
                 </div>
             </div>
             <div class="category">
+                <h3>Fun Presets</h3>
+                <div class="setting">
+                    <label for="presets">Presets:</label>
+                    <div id="presets">
+                        <button id="arrowKeysFR">Arrow Keys & F & R</button>
+                        <button id="keyboardControls">Keyboard controls</button>
+                        <button id="mouseControls">Mouse controls</button>
+                        <button id="reset">Reset</button>
+                    </div>
+                </div>
+            </div>
+            <div class="category">
                 <h3>Gameplay</h3>
-
                 <div class="setting">
                     <label for="bots">Bots:</label>
                     <div id="bots">
@@ -93,7 +108,6 @@
                     <button id="startGame" class="start-btn">Start Game</button>
                     <button id="endGame" class="end-btn">End Game</button>
                 </div>
-
                 <div class="setting">
                     <label for="team">Team:</label>
                     <select id="team">
@@ -101,13 +115,10 @@
                         <option value="red">Red</option>
                     </select>
                 </div>
-
-
                 <div class="setting">
                     <label for="mouseSensitivity">Mouse Sensitivity:</label>
                     <input type="number" id="mouseSensitivity" step="0.01" value="1.75">
                 </div>
-
                 <div class="setting">
                     <div id="mouseRangeDiv">
                         <label for="mouseRange">Mouse Range:</label>
@@ -116,7 +127,6 @@
 
                     <input type="number" id="mouseRange" value="300">
                 </div>
-
                 <div class="setting">
                     <button id="leaveGame">Leave game</button>
                 </div>

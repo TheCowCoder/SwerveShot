@@ -1,9 +1,9 @@
-
-#redBotBtn {
+#spawnBlueBot {
     background-color: #e0005d;
     color: white;
 }
-#blueBotBtn {
+
+#spawnRedBot {
     background-color: #1158ff;
     color: white;
 }
@@ -36,12 +36,15 @@
     font-size: 50px;
     margin-top: 10px;
 }
+
 .stats-table th:first-of-type {
     display: flex;
 }
+
 .stats-table td:not(:first-of-type) {
     text-align: center;
 }
+
 .stats-table td {
     font-size: 25px;
 
@@ -121,10 +124,11 @@
 .stats-table th {
     font-size: 22.5px;
     border-bottom: 2px solid rgb(0, 0, 0);
-  
+
 }
 
-.stats-table th, .stats-table td {
+.stats-table th,
+.stats-table td {
     padding: 10px;
     text-align: right;
 }
@@ -195,13 +199,15 @@ small {
     align-items: center;
     z-index: 9999;
 }
+
 #mouseRangeDiv {
     flex-direction: column !important;
 }
 
 
 .settings-container {
-    position: relative; /* Ensures absolute positioning works inside */
+    position: relative;
+    /* Ensures absolute positioning works inside */
     background-color: white;
     padding: 20px;
     border-radius: 8px;
@@ -218,7 +224,8 @@ small {
     position: sticky;
     bottom: 10px;
     display: flex;
-    justify-content: flex-end; /* Aligns the button to the right */
+    justify-content: flex-end;
+    /* Aligns the button to the right */
     width: 100%;
 }
 

@@ -294,6 +294,38 @@ document.addEventListener("wheel", (e) => {
 
 // #region UI Control
 
+
+
+let settingsBtn = document.getElementById("settingsBtn");
+let overlay = document.getElementById("overlay");
+let closeBtn = document.getElementById("closeBtn");
+
+
+
+let arrowKeysF = document.getElementById("arrowKeysFR");
+let keyboardControls = document.getElementById("keyboardControls");
+let mouseControls = document.getElementById("mouseControls");
+let reset = document.getElementById("reset");
+
+arrowKeysF.addEventListener("click", () => {
+    socket.emit("preset", "arrowKeysFR");
+    overlay.style.display = "none";
+});
+keyboardControls.addEventListener("click", () => {
+    socket.emit("preset", "keyboardControls");
+    overlay.style.display = "none";
+
+});
+mouseControls.addEventListener("click", () => {
+    socket.emit("preset", "mouseControls");
+    overlay.style.display = "none";
+
+});
+reset.addEventListener("click", () => {
+    socket.emit("preset", "default");
+    overlay.style.display = "none";
+});
+
 let blueBotBtn = document.getElementById("spawnBlueBot");
 let redBotBtn = document.getElementById("spawnRedBot");
 
@@ -325,6 +357,7 @@ if (!storageSettings) {
 let usernameInp = document.getElementById("usernameInp");
 
 document.getElementById("mouseRange").value = settings.mouseRange;
+console.log(settings.sensitivity);
 document.getElementById("mouseSensitivity").value = settings.sensitivity;
 usernameInp.value = settings.username;
 
@@ -334,9 +367,6 @@ usernameInp.addEventListener("input", () => {
     localStorage.setItem("settings", JSON.stringify(settings));
 })
 
-let settingsBtn = document.getElementById("settingsBtn");
-let overlay = document.getElementById("overlay");
-let closeBtn = document.getElementById("closeBtn");
 
 settingsBtn.addEventListener("click", () => {
     overlay.style.display = "flex"; // Show overlay
@@ -350,11 +380,11 @@ document.getElementById("saveBtn").addEventListener("click", () => {
     let team = document.getElementById("team").value;
     socket.emit("team", team);
 
-    let mouseSensitivity = document.getElementById("mouseSensitivity").value;
+    let sensitivity = document.getElementById("mouseSensitivity").value;
     let mouseRange = document.getElementById("mouseRange").value;
 
     let newSettings = {
-        mouseSensitivity,
+        sensitivity,
         mouseRange,
     };
     socket.emit("settings", newSettings, (result) => {
@@ -429,10 +459,65 @@ scaleBtn.addEventListener("click", () => {
 
 });
 
+let buttonContainer = document.getElementById("buttons");
+let botsBtn = document.getElementById("botsBtn");
+
+
+botsBtn.addEventListener("click", () => {
+
+    // Store original buttons
+    let originalButtons = buttonContainer.innerHTML;
+
+    // Replace buttons with "Create Room" and "Join Room"
+    buttonContainer.innerHTML = `
+        <div>
+            <button class="menu-btn" id="oneVOneBot"><span>1v1 A Bot!</span></button>
+            <button class="menu-btn" id="oneVTwoBots"><span>1v2 Bots!</span></button>
+            <button class="menu-btn" id="oneVThreeBots"><span>1v3 Bots!</span></button>
+        </div>
+    `;
+
+
+    // Add event listeners to new buttons
+    document.getElementById("oneVOneBot").addEventListener("click", () => {
+
+        socket.emit("create game", (code) => {
+            chatLog.value += "The game code is " + code + "\n";
+            chatLog.value += "The game code is copied to clipboard!\n";
+            copyToClipboard(code);
+
+            let comp = prompt("Competitive controls (same as bot) Y/N");
+
+            if (comp.toUpperCase() == "Y") {
+                socket.emit("preset", "arrowKeysFR");
+            }
+
+            inGame();
+
+            socket.emit("settings", {
+                username: usernameInp.value
+            });
+        });
+
+        socket.emit("bot", "red");
+        setTimeout(() => {
+            socket.emit("start");
+        }, 5000);
+
+        restoreButtons(originalButtons);
+
+
+
+        inGame();
+    });
+
+
+});
+
+
 let privateBtn = document.getElementById("privateBtn");
 let oneVOneBtn = document.getElementById("oneVOneBtn");
 let twoVTwoBtn = document.getElementById("twoVTwoBtn");
-let buttonContainer = document.getElementById("buttons");
 
 
 privateBtn.addEventListener("click", () => {

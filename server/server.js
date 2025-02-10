@@ -200,6 +200,12 @@ io.on("connection", (socket) => {
 
     socket.emit("your id", socket.id);
 
+    socket.on("preset", (preset) => {
+        if (!players[socket.id].game) return;
+
+        players[socket.id].game.applyPreset(preset);
+    });
+
     socket.on("bot", (team) => {
         let game = players[socket.id].game;
         if (game) {

@@ -46,8 +46,13 @@ Attack mode:
 position self behind ball facing player's goal and flip ball into goal.
 When player touches the ball, enter defend mode
 
+
+
 Make preset game settings presets like only keyboard controls
 Make 1v1 bot with or without same controls as it on home page
 
-
 add backwardsFlipsUsed to stats page
+
+1v1 someone with plan
+
+add backwards flip to controls
