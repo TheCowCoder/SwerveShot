@@ -75,11 +75,11 @@ export default class Game {
         this.walls = null;
         this.ball = null;
 
-        this.TURN_SPEED = 5;    // Turn speed
-        this.POWERSLIDE_TURN_SPEED = 10;
+        this.TURN_SPEED = 5 * 0.75;    // Turn speed
+        this.POWERSLIDE_TURN_SPEED = 7.5;
         // this.DRIVE_FORCE = 75 * 0.75;   // Drive force
-        this.DRIVE_FORCE = 1.5 * 0.75;
-        this.LATERAL_FORCE = 1.5 * 0.75;
+        this.DRIVE_FORCE = 1.5 * (0.75 + 0.125);
+        this.LATERAL_FORCE = 1.5 * (0.75 + 0.125);
         // this.BOOST_FORCE = 125;
         this.BOOST_FORCE = 3 * 0.75 + 0.125;
 
@@ -97,7 +97,7 @@ export default class Game {
 
         this.BALL_DENSITY = 0.5 - 0.125;
         this.BALL_FRICTION = 0;
-        this.BALL_RESTITUTION = 1.15;
+        this.BALL_RESTITUTION = 1.1;
 
         this.WALL_DENSITY = 0;
         this.WALL_FRICTION = 0;
@@ -578,7 +578,7 @@ export default class Game {
 
                         const carSpeed = Vec2(car.body.getLinearVelocity()).magnitude();
 
-                        const baseForce = 1; // Base force at low speeds
+                        const baseForce = 1.25; // Base force at low speeds
                         const speedFactor = Math.min(carSpeed / 10, 2); // Allow it to grow up to 2 for higher speeds
                         const adjustedForceFactor = baseForce * (0.5 + Math.pow(speedFactor, 1.5) * 0.5); // Progressive scaling
 
@@ -625,10 +625,10 @@ export default class Game {
                 const object = this.objects[id];
                 objectsForClient[id] = object.object;
             }
-    
+
             this.io.to(this.id).emit("objects added", objectsForClient);
             this.io.to(this.id).emit("wall vertices", this.wallVertices);
-    
+
         }
 
 
@@ -660,6 +660,7 @@ export default class Game {
             inputs: {},
             car: carObj,
             flip: true,
+            backwardsFlip: true,
             team: "blue",
             settings: {
                 mouseRange: 300,
@@ -819,11 +820,26 @@ export default class Game {
                 }, FLIP_DELAY);
             }
 
+            if (player.inputs["r"] && player.backwardsFlip) {
+                // flipped = true
+                player.car.body.applyLinearImpulse(forward.mul(-this.FLIP_FORCE + 1.25), player.car.body.getWorldCenter(), true);
+                player.backwardsFlip = false;
+
+                if (this.gameStats?.players[player.id]) {
+                    this.gameStats.players[player.id].backwardsFlipsUsed++;
+                }
+
+                const FLIP_DELAY = 500 * 0.75;
+                setTimeout(() => {
+                    player.backwardsFlip = true;
+                }, FLIP_DELAY);
+            }
+
             // Apply boost force if space or mouse2 is pressed
             if (player.inputs[" "] || player.inputs["mouse2"]) {
                 if (!player.car.boosting) {
                     player.car.boosting = true;
-                    this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: true } });    
+                    this.io.to(this.id).emit("object updates", { [player.car.id]: { boosting: true } });
                 }
 
                 if (this.gameStats?.players[player.id]) {

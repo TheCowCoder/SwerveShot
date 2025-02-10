@@ -16,8 +16,6 @@ try small car big ball
 try mouse bump mode
 get smooth cam working
 
-1v1 zerotix when i have all modes implemented or at least just big field
-
 
 add display for ping;
 
@@ -35,25 +33,10 @@ try dribble assist []
 make ballcam or and ball indicator
 
 
-
 update controls and settings []
 
-Decrease flip power
 
-1:21 only attack 1 goal given
-
-
-Test with next person: does person driving get affected by getting bumped
-Test rule 1
-
-
-try making movement non relative to car angle
-
-make bots:
-First make all random bot
-
-
-How bots will work:
+How bots will work: []
 Will start in defend or attack mode by random.
 Defend mode:
 position self between own goal and ball, then slowly move towards ball
@@ -63,3 +46,8 @@ Attack mode:
 position self behind ball facing player's goal and flip ball into goal.
 When player touches the ball, enter defend mode
 
+Make preset game settings presets like only keyboard controls
+Make 1v1 bot with or without same controls as it on home page
+
+
+add backwardsFlipsUsed to stats page
