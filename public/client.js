@@ -128,9 +128,7 @@ socket.on("objects added", (_objects) => {
     for (let id in _objects) {
         let object = _objects[id];
         if (object.position) object.position = Vec2(object.position);
-        if (object.sprite == "botTwo") {
-            console.log("BOT CAR", object);
-        }
+
         objects[id] = object;
     }
 });

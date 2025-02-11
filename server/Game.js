@@ -93,7 +93,7 @@ export default class Game {
         this.CAR_HEIGHT = CONSTANTS.CAR_HEIGHT;     // Car height in meters
         this.CAR_DENSITY = 0.37;
         // this.CAR_FRICTION = 0.5;
-        this.CAR_FRICTION = 0.25;
+        this.CAR_FRICTION = 0.3;
         // this.CAR_FRICTION = 0;
         this.CAR_RESTITUTION = 0;
 
@@ -134,8 +134,8 @@ export default class Game {
         this.pinchActive = false;  // Flag for an active pinch
 
         this.recentBallContacts = []
+        this.recentPlayerContacts = [];
         this.PINCH_TIME_THRESHOLD = 50;
-        
     }
 
     applyPreset(preset) {
@@ -202,7 +202,6 @@ export default class Game {
             }
 
             for (let id in this.players) {
-                // console.log("STARTING GAME", id);
                 this.gameStats.players[id] = {
                     username: this.players[id].settings.username,
                     goals: 0,
@@ -432,7 +431,6 @@ export default class Game {
         }
         if (!playersLeft) {
             for (let id in this.players) {
-                console.log("STOPPING BOT");
                 this.botManager.bots[id].stop();
             }
             this.renderer.stop();
@@ -440,111 +438,99 @@ export default class Game {
         }
     }
 
+
     onBeginContact(contact) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
-        
+
         let contactType = null;
         let playerContact = false;
         let wallContact = false;
-        
-        if (bodyA === this.ball.body || bodyB === this.ball.body) {
-            if (bodyA === this.walls || bodyB === this.walls) {
-                contactType = "wall";
-                this.ballTouchingWall = true;
-                wallContact = true;
-            } 
-            
-            for (let id in this.players) {
-                let player = this.players[id];
-                if (bodyA === player.car.body || bodyB === player.car.body) {
-                    contactType = "player";
-                    playerContact = true;
-                    this.ballTouchingCar = true;
-                }
-            }
-        }
-    
-        if (playerContact || wallContact) {
-            let now = Date.now();
-    
-            // Ensure we only store the last two distinct contact types
-            if (
-                this.recentBallContacts.length > 0 &&
-                this.recentBallContacts[this.recentBallContacts.length - 1].type === contactType
-            ) {
-                // Avoid duplicate consecutive entries
-                return;
-            }
-    
-            // Add new contact to list
-            this.recentBallContacts.push({ type: contactType, time: now });
-    
-            // Keep only the last two contacts
-            if (this.recentBallContacts.length > 2) {
-                this.recentBallContacts.shift(); // Remove the oldest
-            }
-    
-            // If we have two distinct contacts, check the time between them
-            if (this.recentBallContacts.length === 2) {
-                let [first, second] = this.recentBallContacts;
-                let timeDiff = second.time - first.time;
-    
-    
-                if (timeDiff < this.PINCH_TIME_THRESHOLD) {
-                    this.pinchActive = true;
-                }
-            }
-        }
     }
-    
-    
-    
 
-    
     onPreSolve(contact) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
-    
+
         let ballInContact = (bodyA === this.ball.body || bodyB === this.ball.body);
         let wallContact = (bodyA === this.walls || bodyB === this.walls);
         let playerContact = false;
-        
+        let playerBodies = [];
+
         for (let id in this.players) {
             let player = this.players[id];
             if (bodyA === player.car.body || bodyB === player.car.body) {
                 playerContact = true;
-                break;
+                playerBodies.push(player.car.body);
             }
         }
-        
-        if (ballInContact && (wallContact || playerContact) && this.pinchActive) {
-            console.log("Disabling friction for pinch!");
-            contact.setFriction(0);
+        // Ensure friction is set to 0 **only for ball-wall or ball-player contacts**
+        if (this.pinchActive) {
+            if ((ballInContact && wallContact) || (ballInContact && playerContact)) {
+                contact.setFriction(0);
+            }
         }
 
+        // Detect new pinch event
+        if (ballInContact && (wallContact || playerContact)) {
+            let now = Date.now();
+
+            if (
+                this.recentBallContacts.length > 0 &&
+                this.recentBallContacts[this.recentBallContacts.length - 1].type === (wallContact ? "wall" : "player")
+            ) {
+                return;
+            }
+
+            this.recentBallContacts.push({ type: wallContact ? "wall" : "player", time: now });
+
+            if (this.recentBallContacts.length > 2) {
+                this.recentBallContacts.shift();
+            }
+
+            if (this.recentBallContacts.length === 2) {
+                let [first, second] = this.recentBallContacts;
+                let timeDiff = second.time - first.time;
+
+                if (timeDiff < this.PINCH_TIME_THRESHOLD) {
+                    this.pinchActive = true;
+                    contact.setFriction(0);
+                }
+            }
+        }
+
+        // Handle player-player pinch
+        if (this.recentPlayerContacts.length === 2) {
+            let [first, second] = this.recentPlayerContacts;
+            let timeDiff = second.time - first.time;
+
+            if (timeDiff < this.PINCH_TIME_THRESHOLD) {
+                this.pinchActive = true;
+                console.log("Player pinch detected - Disabling friction!");
+
+                // Set friction to 0 only for player-to-player collisions
+                if (playerBodies.includes(bodyA) && playerBodies.includes(bodyB)) {
+                    contact.setFriction(0);
+                }
+            }
+        }
+
+        // Ensure restitution is set correctly
         for (let id in this.players) {
             let player = this.players[id];
 
-            if (
-                (bodyA == player.car.body && bodyB == this.walls) ||
-                (bodyB == player.car.body && bodyA == this.walls)
-            ) {
+            if ((bodyA === player.car.body && bodyB === this.walls) || (bodyB === player.car.body && bodyA === this.walls)) {
                 contact.setRestitution(0);
             }
 
-            // Zero impact when a car collides with another car
             for (let otherId in this.players) {
                 if (id !== otherId) {
                     let otherPlayer = this.players[otherId];
-                    if (
-                        (bodyA === player.car.body && bodyB === otherPlayer.car.body) ||
-                        (bodyB === player.car.body && bodyA === otherPlayer.car.body)
-                    ) {
+                    if ((bodyA === player.car.body && bodyB === otherPlayer.car.body) || (bodyB === player.car.body && bodyA === otherPlayer.car.body)) {
                         contact.setRestitution(0);
                         player.prevVelocity = player.car.body.getLinearVelocity().clone();
                         otherPlayer.prevVelocity = otherPlayer.car.body.getLinearVelocity().clone();
@@ -552,38 +538,52 @@ export default class Game {
                 }
             }
         }
-
     }
-    
+
+
+
     onEndContact(contact) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
-    
-        let wasTouchingPlayer = false;
-        let wasTouchingWall = false;
-    
+
+        let ballWasInContact = (bodyA === this.ball.body || bodyB === this.ball.body);
+        let playerWasInContact = false;
+        let wallWasInContact = (bodyA === this.walls || bodyB === this.walls);
+
         for (let id in this.players) {
             let player = this.players[id];
-            if ((bodyA === player.car.body && bodyB === this.ball.body) ||
-                (bodyB === player.car.body && bodyA === this.ball.body)) {
-                this.ballTouchingCar = false;
-                wasTouchingPlayer = true;
+            if (bodyA === player.car.body || bodyB === player.car.body) {
+                playerWasInContact = true;
             }
         }
-    
-        if ((bodyA === this.ball.body && bodyB === this.walls) ||
-            (bodyB === this.ball.body && bodyA === this.walls)) {
-            this.ballTouchingWall = false;
-            wasTouchingWall = true;
+
+        // If ball loses contact with either the wall or the player, reset pinchActive if last two contacts are too far apart
+        if (this.pinchActive && this.recentBallContacts.length === 2) {
+            let [first, second] = this.recentBallContacts;
+            let timeDiff = second.time - first.time;
+
+            if (timeDiff > this.PINCH_TIME_THRESHOLD) {
+                console.log("Pinch ended - Resetting friction");
+                this.pinchActive = false;
+            }
         }
-    
-        if (!this.ballTouchingCar || !this.ballTouchingWall) {
-            this.pinchActive = false;
+
+        // Remove old player contacts when the ball is no longer touching any player
+        if (ballWasInContact && playerWasInContact) {
+            this.recentPlayerContacts = [];
+        }
+
+        // Remove old ball contacts when the ball is no longer touching a wall
+        if (ballWasInContact && wallWasInContact) {
+            this.recentBallContacts = [];
         }
     }
-    
+
+
+
+
 
     onPostSolve(contact, impulse) {
         const fixtureA = contact.getFixtureA();
@@ -679,32 +679,55 @@ export default class Game {
 
                         const offset = (carRight.x * ballToFront.x + carRight.y * ballToFront.y);
 
-                        const ballDest = {
-                            x: ballPos.x - carRight.x * offset,
-                            y: ballPos.y - carRight.y * offset
-                        };
+                        const ballDest = Vec2(
+                            ballPos.x - carRight.x * offset,
+                            ballPos.y - carRight.y * offset
+                        );
 
+                        let ballDist = Vec2(ballPos).distance(ballDest);
                         const carSpeed = Vec2(car.body.getLinearVelocity()).magnitude();
 
-                        const baseForce = 1.5;
-                        const speedFactor = Math.min(carSpeed / 10, 2);
-                        const adjustedForceFactor = baseForce * (0.5 + Math.pow(speedFactor, 1.5) * 0.5);
+                        const baseForce = 1.5;  // Base force multiplier
+                        const minScale = 1.5;   // Minimum force scale (prevents weak force at low speed)
+                        const speedBoost = 0.5;   // Boosts low-speed force calculation
+                        const exponent = 0.1;   // Controls how force scales with speed
 
-                        let dampingFactor = 1;
+                        let dampingPower = 10;
+                        let dampingFactor = 1 - (ballDist) / (ballDist + dampingPower);
+                        dampingFactor = 1;
+
+
+                        // Apply damping
+                        let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * dampingFactor;
+
+
+                        adjustedForceFactor *= Math.abs(car.body.getAngularVelocity()) * 1;
+
+                        // right = 4
+                        // left = -4
+                        console.log(adjustedForceFactor);
+
+
                         const force = {
-                            x: (ballDest.x - ballPos.x) * adjustedForceFactor * dampingFactor,
-                            y: (ballDest.y - ballPos.y) * adjustedForceFactor * dampingFactor
+                            x: (ballDest.x - ballPos.x) * adjustedForceFactor,
+                            y: (ballDest.y - ballPos.y) * adjustedForceFactor
                         };
 
                         this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
                     }
+
+   
                 }
             }
+
+
+
+
         }
     }
 
 
-    
+
 
     createObject(object, body) {
         let id = Math.random().toString(36).substr(2, 9);

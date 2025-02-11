@@ -84,3 +84,7 @@ mess with car friction []
 
 
 spawn players at kickoffs in lobby
+
+
+Fix dribbling force
+fix player pinch detection
