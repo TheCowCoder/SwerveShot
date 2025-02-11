@@ -41,6 +41,7 @@ export default class BotManager {
                         console.log("No longer players needed, bot removed from q");
                         return;
                     };
+                    this.matchMaker.queue[id].botsWaiting--;
                     let botId = Math.random().toString();
                     this.matchMaker.addToQueue(botId, this.matchMaker.queue[id].gameMode);
 

@@ -650,23 +650,6 @@ export default class Game {
 
                         let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5);
 
-                        // let carAngularVel = car.body.getAngularVelocity();
-                        // let spinShotStrength = 5;
-
-                        // let minAngularVel = 5;  // Lower bound where force starts increasing
-                        // let maxAngularVel = 15; // Upper bound where force decreases
-                        // let peakAngularVel = minAngularVel + (maxAngularVel - minAngularVel) * 0.3; // Skewed towards lower values
-
-                        // // **Skewed Bell Curve Function**
-                        // let normalizedVel = (carAngularVel - peakAngularVel) / (maxAngularVel - minAngularVel);
-                        // let forceScale = Math.exp(-normalizedVel * normalizedVel * 6); // Skewing by increasing the multiplier
-
-                        // // Apply scaling to force factor
-                        // adjustedForceFactor *= 1 + spinShotStrength * forceScale;
-
-                        // console.log(adjustedForceFactor);
-
-
                         const force = {
                             x: (ballDest.x - ballPos.x) * adjustedForceFactor,
                             y: (ballDest.y - ballPos.y) * adjustedForceFactor
