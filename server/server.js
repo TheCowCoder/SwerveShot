@@ -11,6 +11,8 @@ import { Vec2 } from "../shared/Vec2.js";
 import Game from "./Game.js";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
 import BotManager from "./BotManager.js";
+import MatchMaker from "./MatchMaker.js";
+import { copyFileSync } from "fs";
 
 
 const PORT = process.env.PORT || 3000;
@@ -29,163 +31,13 @@ app.use("/shared", express.static(path.join(__dirname, "../shared")));
 
 let players = {};
 
-let queue = {};
-
-let matchStartDelay = 1000 * 5;
-
-function matchmake() {
-    let MMR_THRESHOLD = 100;
-
-    for (let creatorId in queue) {
-        let searchingGroup = queue[creatorId];
-
-        for (let otherCreatorId in queue) {
-            let otherSearchingGroup = queue[otherCreatorId];
-            if (otherSearchingGroup === searchingGroup) continue;
-
-            if (searchingGroup.gameMode === otherSearchingGroup.gameMode) {
-                if (Math.abs(searchingGroup.avgMMR - otherSearchingGroup.avgMMR) < MMR_THRESHOLD) {
-                    if (searchingGroup.playersNeeded >= otherSearchingGroup.players.length) {
-                        let oldCount = searchingGroup.players.length;
-                        let newCount = otherSearchingGroup.players.length;
-                        let totalCount = oldCount + newCount;
-
-                        let sumNewMMR = otherSearchingGroup.players.reduce(
-                            (sum, playerId) => sum + players[playerId].MMR, 0
-                        );
-
-                        // Update avgMMR using running average formula
-                        searchingGroup.avgMMR =
-                            (searchingGroup.avgMMR * oldCount + sumNewMMR) / totalCount;
-
-                        // Merge players
-                        searchingGroup.players = searchingGroup.players.concat(otherSearchingGroup.players);
-                        searchingGroup.playersNeeded -= otherSearchingGroup.players.length;
-
-                        // Remove merged group from queue
-                        delete queue[otherCreatorId];
-
-                        if (searchingGroup.playersNeeded === 0) {
-                            console.log("Match made!", searchingGroup.players);
-                            matchMade(searchingGroup.players, searchingGroup.gameMode);
-                            // Remove the group from queue since match is made
-                            delete queue[creatorId];
-                        } else {
-                            console.log("Combined with another searchingGroup");
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-
-function chooseRandom(array) {
-    let randomIndex = Math.floor(Math.random() * array.length);
-    let choice = array.splice(randomIndex, 1)[0];
-    return [choice, array];
-}
-function matchMade(_players, gameMode) {
-    let game = new Game(io, botManager, false);
-
-    for (let id of _players) {
-        const player = players[id];
-        game.playerJoined(player.socket);
-        player.game = game;
-    }
-
-    io.to(game.id).emit("match made");
-
-
-    if (gameMode == "1v1") {
-        let p1;
-        [p1, _players] = chooseRandom(_players);
-        let p2;
-        [p2, _players] = chooseRandom(_players);
-
-        game.players[p1].team = "blue";
-        game.players[p2].team = "red";
-
-        io.to(game.id).emit("object updates", {
-            [game.players[p1].car.id]: { sprite: game.players[p1].team === "blue" ? "carBlue" : "carRed" },
-            [game.players[p2].car.id]: { sprite: game.players[p2].team === "blue" ? "carBlue" : "carRed" }
-        });
-
-        setTimeout(() => {
-            game.start(true);
-        }, matchStartDelay);
-
-    } else if (gameMode == "2v2") {
-        let p1;
-        [p1, _players] = chooseRandom(_players);
-        let p2;
-        [p2, _players] = chooseRandom(_players);
-
-        let p3;
-        [p3, _players] = chooseRandom(_players);
-        let p4;
-        [p4, _players] = chooseRandom(_players);
-
-        game.players[p1].team = "blue";
-        game.players[p2].team = "blue";
-        game.players[p3].team = "red";
-        game.players[p4].team = "red";
-
-        io.to(game.id).emit("object updates", {
-            [game.players[p1].car.id]: { sprite: game.players[p1].team === "blue" ? "carBlue" : "carRed" },
-            [game.players[p2].car.id]: { sprite: game.players[p2].team === "blue" ? "carBlue" : "carRed" },
-            [game.players[p3].car.id]: { sprite: game.players[p3].team === "blue" ? "carBlue" : "carRed" },
-            [game.players[p4].car.id]: { sprite: game.players[p4].team === "blue" ? "carBlue" : "carRed" }
-        });
-
-        setTimeout(() => {
-            game.start(true);
-        }, matchStartDelay);
-
-
-    } else if (gameMode == "3v3") {
-        let p1;
-        [p1, _players] = chooseRandom(_players);
-        let p2;
-        [p2, _players] = chooseRandom(_players);
-        let p3;
-        [p3, _players] = chooseRandom(_players);
-
-        let p4;
-        [p4, _players] = chooseRandom(_players);
-        let p5;
-        [p5, _players] = chooseRandom(_players);
-        let p6;
-        [p6, _players] = chooseRandom(_players);
-
-
-        game.players[p1].team = "blue";
-        game.players[p2].team = "blue";
-        game.players[p3].team = "blue";
-
-        game.players[p4].team = "red";
-        game.players[p5].team = "red";
-        game.players[p6].team = "red";
-
-        io.to(game.id).emit("object updates", {
-            [game.players[p1].car.id]: { sprite: game.players[p1].team === "blue" ? "carBlue" : "carRed" },
-            [game.players[p2].car.id]: { sprite: game.players[p2].team === "blue" ? "carBlue" : "carRed" },
-            [game.players[p3].car.id]: { sprite: game.players[p3].team === "blue" ? "carBlue" : "carRed" },
-
-            [game.players[p4].car.id]: { sprite: game.players[p4].team === "blue" ? "carBlue" : "carRed" },
-            [game.players[p5].car.id]: { sprite: game.players[p5].team === "blue" ? "carBlue" : "carRed" },
-            [game.players[p6].car.id]: { sprite: game.players[p6].team === "blue" ? "carBlue" : "carRed" },
-        });
-
-        setTimeout(() => {
-            game.start(true);
-        }, matchStartDelay);
-
-    }
-}
 
 const botManager = new BotManager();
+const matchMaker = new MatchMaker(players, botManager, io);
+botManager.matchMaker = matchMaker;
+
+botManager.botQueueInterval();
+
 
 io.on("connection", (socket) => {
     console.log("A user connected!", socket.id);
@@ -198,8 +50,19 @@ io.on("connection", (socket) => {
         game: null
     }
 
+
     socket.emit("your id", socket.id);
 
+    socket.on("bot skill", (skillLevel) => {
+        if (players[socket.id].game) {
+            for (let id in players[socket.id].game.players) {
+                if (id in botManager.bots) {
+                    console.log("Setting bot skill", skillLevel);
+                    botManager.bots[id].skillLevel = skillLevel;
+                }
+            }
+        }
+    });
     socket.on("preset", (preset) => {
         if (!players[socket.id].game) return;
 
@@ -239,27 +102,12 @@ io.on("connection", (socket) => {
         if (players[socket.id].game) io.to(players[socket.id].game.id).emit("chat", sender, msg)
     });
     socket.on("queue", (gameMode) => {
-        queue[socket.id] = {
-            gameMode,
-            avgMMR: players[socket.id].MMR,
-            players: [socket.id]
-        }
-        if (gameMode == "1v1") {
-            queue[socket.id].playersNeeded = 1;
-        } else if (gameMode == "2v2") {
-            queue[socket.id].playersNeeded = 3;
-        } else if (gameMode == "3v3") {
-            queue[socket.id].playersNeeded = 5;
-        }
-
-
-        matchmake();
-
+        matchMaker.addToQueue(socket.id, gameMode);
     });
 
     socket.on("settings", (settings, cb) => {
         if (!players[socket.id].game) {
-            cb(false);
+            if (typeof cb == "function") cb(false);
             return;
         }
         for (let key in settings) {
@@ -272,6 +120,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("exit pointer lock", (cb) => {
+        console.log(socket.id, "exit pointer lock");
         players[socket.id].game.players[socket.id].inputs["mousePos"] = null;
         cb();
     });
@@ -370,52 +219,10 @@ io.on("connection", (socket) => {
     socket.on("disconnect", () => {
         console.log("A user disconnected!", socket.id);
 
-        // Remove player's own searching group if they were the creator
-        if (queue[socket.id]) {
-            let removedGroup = queue[socket.id];
-            delete queue[socket.id];
-
-            // Create new searching groups for remaining players
-            removedGroup.players.forEach(playerId => {
-                if (playerId !== socket.id) {
-                    queue[playerId] = {
-                        gameMode: removedGroup.gameMode,
-                        avgMMR: players[playerId].MMR,
-                        players: [playerId],
-                        playersNeeded: removedGroup.gameMode === "1v1" ? 1 :
-                            removedGroup.gameMode === "2v2" ? 3 : 5
-                    };
-                }
-            });
-        }
-
-        // Search for and remove the player from any other searching groups
-        for (let creatorId in queue) {
-            let searchingGroup = queue[creatorId];
-
-            let index = searchingGroup.players.indexOf(socket.id);
-            if (index !== -1) {
-                searchingGroup.players.splice(index, 1);
-                searchingGroup.playersNeeded += 1;
-
-                if (searchingGroup.players.length > 0) {
-                    // Update avgMMR after removing player
-                    let sumMMR = searchingGroup.players.reduce((sum, playerId) => sum + players[playerId].MMR, 0);
-                    searchingGroup.avgMMR = sumMMR / searchingGroup.players.length;
-                } else {
-                    // No players left, remove group
-                    delete queue[creatorId];
-                }
-            }
-        }
-
-        // Remove player from the players object
+        matchMaker.removeFromQueue(socket.id);
 
         playerLeft(socket.id);
-
         delete players[socket.id];
-
-        matchmake();
     });
 
 });

@@ -128,7 +128,9 @@ socket.on("objects added", (_objects) => {
     for (let id in _objects) {
         let object = _objects[id];
         if (object.position) object.position = Vec2(object.position);
-
+        if (object.sprite == "botTwo") {
+            console.log("BOT CAR", object);
+        }
         objects[id] = object;
     }
 });
@@ -332,7 +334,7 @@ redBotBtn.addEventListener("click", () => {
 
 const defaultSettings = {
     mouseRange: 300,
-    sensitivity: 1.75,
+    sensitivity: 1.625,
     username: ""
 };
 
@@ -470,17 +472,35 @@ botsBtn.addEventListener("click", () => {
     `;
 
 
-    function startGame() {
+    function startGame(gameMode) {
+        let comp = prompt("Competitive controls (same as bot) Y/N");
+        let skillLevel = parseFloat(prompt("Bot Skill level? (0-1)"));
+
         socket.emit("create game", (code) => {
             chatLog.value += "The game code is " + code + "\n";
             chatLog.value += "The game code is copied to clipboard!\n";
             copyToClipboard(code);
 
-            let comp = prompt("Competitive controls (same as bot) Y/N");
-
             if (comp.toUpperCase() == "Y") {
                 socket.emit("preset", "arrowKeysFR");
             }
+
+            if (gameMode == "1v1") {
+                socket.emit("bot", "red");
+            } else if (gameMode == "1v2") {
+                socket.emit("bot", "red");
+                socket.emit("bot", "red");
+            } else if (gameMode == "1v3") {
+                socket.emit("bot", "red");
+                socket.emit("bot", "red");
+                socket.emit("bot", "red");
+            }
+
+
+            if (skillLevel != null || skillLevel != undefined) {
+                console.log("emitting bot skill", skillLevel);
+                socket.emit("bot skill", skillLevel);
+            }    
 
             inGame();
 
@@ -501,19 +521,13 @@ botsBtn.addEventListener("click", () => {
 
     // Add event listeners to new buttons
     document.getElementById("oneVOneBot").addEventListener("click", () => {
-        startGame();
-        socket.emit("bot", "red");
+        startGame("1v1");
     });
     document.getElementById("oneVTwoBots").addEventListener("click", () => {
-        startGame();
-        socket.emit("bot", "red");
-        socket.emit("bot", "red");
+        startGame("1v2");
     });
     document.getElementById("oneVThreeBots").addEventListener("click", () => {
-        startGame();
-        socket.emit("bot", "red");
-        socket.emit("bot", "red");
-        socket.emit("bot", "red");
+        startGame("1v3");
     });
 
 

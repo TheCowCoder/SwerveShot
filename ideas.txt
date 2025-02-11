@@ -61,12 +61,26 @@ find a gpt model that can handle the whole project, ask as a professional develo
 make bots leave games and close games []
 
 
-add boosting to bots:
-if bot is certain distance from car, boost
+add boosting to bots: []
+if bot is certain distance from car, boost []
 
 
 Next:
 Make sure bot boosting is fixed
-make skill level for bot from 0 to 1
-add bots to ranked queue
+make skill level for bot from 0 to 1 []
+add bots to ranked queue []
+- every interval, check if player is needed []
+- for every player needed, set timeout to have a bot join []
+  - fix if player leaves queue before timeout, don't join []
+
+make pinching work by disabling friction on contact []
+
+
+do big test of bot queue []
+mess with car friction []
+
 1v1 someone with plan
+- test player pinching
+
+
+spawn players at kickoffs in lobby

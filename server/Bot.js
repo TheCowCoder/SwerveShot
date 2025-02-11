@@ -2,10 +2,11 @@ import * as CONSTANTS from "../shared/CONSTANTS.js";
 import { Vec2 } from "../shared/Vec2.js";
 
 export default class Bot {
-    constructor(game, io) {
+    constructor(game, io, id, skillLevel) {
         this.game = game;
         this.io = io;
         this.id = Math.random().toString();
+        if (id) this.id = id
         this.game.playerJoined(null, this)
 
         this.player = this.game.players[this.id];
@@ -17,16 +18,22 @@ export default class Bot {
 
 
         this.mode = Math.random() > 0.5 ? "Attack" : "Defend";
-
+        this.mode = "Attack";
         this.stage = "positioning";
 
         this.setup();
 
         this.botDest = null;
+
+        this.skillLevel = skillLevel !== undefined ? skillLevel : 1;
     }
 
     setup() {
 
+    }
+
+    mapSkill(minSkill, maxSkill) {
+        return maxSkill + (1 - this.skillLevel) * (minSkill - maxSkill);
     }
     step() {
         if (!this.running) return;
@@ -46,8 +53,9 @@ export default class Bot {
                 this.botDest = ballPos.add(toBall.mul(CONSTANTS.BALL_RADIUS + CONSTANTS.CAR_HEIGHT / 2 + 0.5));
                 let angleToDest = Math.atan2(this.botDest.y - carPos.y, this.botDest.x - carPos.x);
                 let angleDiff = Math.atan2(Math.sin(angleToDest - carAngle), Math.cos(angleToDest - carAngle));
+                
+                const angleThreshold = this.mapSkill(0.25, 0.001);
 
-                const angleThreshold = 0.001;
 
                 if (3 - Math.abs(angleDiff) < angleThreshold) {
                     if (this.leftOn) this.left(false);
@@ -63,7 +71,10 @@ export default class Bot {
                     this.forward(false);
                 }
 
-                if (carPos.distance(this.botDest) <= 2) {
+
+                let closeEnoughDist = this.mapSkill(7.5, 2);
+
+                if (carPos.distance(this.botDest) <= closeEnoughDist) {
                     this.forward(false);
                     this.left(false);
                     this.right(false);
@@ -77,7 +88,8 @@ export default class Bot {
                 let angleDiff = Math.atan2(Math.sin(angleToBall - carAngle), Math.cos(angleToBall - carAngle));
 
 
-                const angleThreshold = 0.001;
+                const angleThreshold = this.mapSkill(0.25, 0.001);
+
                 if (3 - Math.abs(angleDiff) < angleThreshold) {
                     if (this.leftOn) this.left(false);
                     if (this.rightOn) this.right(false);
@@ -151,7 +163,8 @@ export default class Bot {
                 let toDefendPos = Math.atan2(this.botDest.y - carPos.y, this.botDest.x - carPos.x);
                 let angleDiff = Math.atan2(Math.sin(toDefendPos - carAngle), Math.cos(toDefendPos - carAngle));
 
-                const angleThreshold = 0.001;
+                const angleThreshold = this.mapSkill(0.25, 0.001);
+
                 if (3 - Math.abs(angleDiff) < angleThreshold) {
                     if (this.leftOn) this.left(false);
                     if (this.rightOn) this.right(false);
@@ -167,7 +180,9 @@ export default class Bot {
                 }
 
 
-                if (carPos.distance(this.botDest) <= 3) {
+                let closeEnoughDist = this.mapSkill(8.5, 3);
+
+                if (carPos.distance(this.botDest) <= closeEnoughDist) {
                     this.forward(false);
                     this.right(false);
                     this.left(false);
@@ -180,7 +195,7 @@ export default class Bot {
                 let angleToBall = Math.atan2(ballPos.y - carPos.y, ballPos.x - carPos.x);
                 let angleDiff = Math.atan2(Math.sin(angleToBall - carAngle), Math.cos(angleToBall - carAngle));
 
-                const angleThreshold = 0.001; // Slightly increased threshold for smoother transition
+                const angleThreshold = this.mapSkill(0.25, 0.001); // Slightly increased threshold for smoother transition
 
                 if (
                     (3 - Math.abs(angleDiff) < angleThreshold) &&
@@ -204,7 +219,7 @@ export default class Bot {
                 let angleToBall = Math.atan2(ballPos.y - carPos.y, ballPos.x - carPos.x);
                 let angleDiff = Math.atan2(Math.sin(angleToBall - carAngle), Math.cos(angleToBall - carAngle));
 
-                const angleThreshold = 0.001; // Slightly increased threshold for smoother transition
+                const angleThreshold = this.mapSkill(0.25, 0.001); // Slightly increased threshold for smoother transition
 
                 if (3 - Math.abs(angleDiff) < angleThreshold) {
                     if (this.leftOn) this.left(false);
@@ -222,7 +237,7 @@ export default class Bot {
                     this.forward(false);
                 }
 
-                let defendDistance = 4;
+                let defendDistance = this.mapSkill(0, 4);
                 if (Vec2(this.player.car.body.getPosition()).distance(this.game.ball.body.getPosition()) <= defendDistance) {
                     this.right(false);
                     this.left(false);
@@ -234,16 +249,23 @@ export default class Bot {
                     }, 50);
                 }
             }
+        } else if (this.mode == "Forward") {
+            this.forward();
         }
-        let carPos = Vec2(this.player.car.body.getPosition());
 
-        let dist = carPos.distance(this.botDest);
-        let boostThreshold = 10;
+        if (this.mode == "Attack" || this.mode == "Defend") {
+            
+            let carPos = Vec2(this.player.car.body.getPosition());
 
-        if (dist > boostThreshold) {
-            this.boost();
-        } else {
-            this.boost(false);
+            let dist = carPos.distance(this.botDest);
+            let boostThreshold = 10;
+    
+            if (dist > boostThreshold) {
+                this.boost();
+            } else {
+                this.boost(false);
+            }
+    
         }
 
         setTimeout(this.step, 1000 / this.FPS);
