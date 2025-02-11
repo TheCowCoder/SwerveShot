@@ -129,13 +129,11 @@ export default class Game {
 
         this.preset = "default";
 
-        this.ballTouchingWall = false;
-        this.ballTouchingCar = false;
-        this.pinchActive = false;  // Flag for an active pinch
+        this.pinchActive = false;
+        this.recentBallContacts = [];
 
-        this.recentBallContacts = []
-        this.recentPlayerContacts = [];
         this.PINCH_TIME_THRESHOLD = 50;
+
     }
 
     applyPreset(preset) {
@@ -456,77 +454,69 @@ export default class Game {
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
 
-        let ballInContact = (bodyA === this.ball.body || bodyB === this.ball.body);
-        let wallContact = (bodyA === this.walls || bodyB === this.walls);
-        let playerContact = false;
-        let playerBodies = [];
-
-        for (let id in this.players) {
-            let player = this.players[id];
-            if (bodyA === player.car.body || bodyB === player.car.body) {
-                playerContact = true;
-                playerBodies.push(player.car.body);
-            }
-        }
-        // Ensure friction is set to 0 **only for ball-wall or ball-player contacts**
         if (this.pinchActive) {
-            if ((ballInContact && wallContact) || (ballInContact && playerContact)) {
-                contact.setFriction(0);
-            }
-        }
+            // console.log("Pinch duration...");
+            contact.setFriction(0);
+        } else {
+            let ballInContact = (bodyA === this.ball.body || bodyB === this.ball.body);
+            let wallsInContact = (bodyA === this.walls || bodyB === this.walls);
 
-        // Detect new pinch event
-        if (ballInContact && (wallContact || playerContact)) {
-            let now = Date.now();
-
-            if (
-                this.recentBallContacts.length > 0 &&
-                this.recentBallContacts[this.recentBallContacts.length - 1].type === (wallContact ? "wall" : "player")
-            ) {
-                return;
+            let playerInContact = false;
+            for (let id in this.players) {
+                let player = this.players[id];
+                if (bodyA === player.car.body || bodyB === player.car.body) {
+                    playerInContact = true;
+                }
             }
 
-            this.recentBallContacts.push({ type: wallContact ? "wall" : "player", time: now });
 
-            if (this.recentBallContacts.length > 2) {
+            if (ballInContact && wallsInContact) {
+                this.recentBallContacts.push({
+                    collider: "walls",
+                    time: performance.now()
+                });
+            } else if (ballInContact && playerInContact) {
+                this.recentBallContacts.push({
+                    collider: "player",
+                    time: performance.now()
+                });
+            }
+
+
+            if (this.recentBallContacts.length > 3) {
                 this.recentBallContacts.shift();
             }
 
-            if (this.recentBallContacts.length === 2) {
-                let [first, second] = this.recentBallContacts;
-                let timeDiff = second.time - first.time;
+            if (this.recentBallContacts.length == 3) {
+                let [first, second, third] = this.recentBallContacts;
+                if (
+                    first.collider == "player" && second.collider == "walls" && third.collider == "player" ||
+                    first.collider == "walls" && second.collider == "player" && third.collider == "walls"
+                ) {
+                    let firstTime = second.time - first.time;
+                    let secondTime = third.time - second.time;
 
-                if (timeDiff < this.PINCH_TIME_THRESHOLD) {
-                    this.pinchActive = true;
-                    contact.setFriction(0);
+                    let pinchTime = (firstTime + secondTime) / 2;
+                    if (pinchTime < this.PINCH_TIME_THRESHOLD) {
+                        console.log("PINCH STARTED!");
+                        this.pinchActive = true;
+                        contact.setFriction(0);
+
+                        setTimeout(() => {
+                            console.log("PINCH is over .")
+                            this.pinchActive = false;
+                        }, 100);
+                    }
                 }
             }
         }
 
-        // Handle player-player pinch
-        if (this.recentPlayerContacts.length === 2) {
-            let [first, second] = this.recentPlayerContacts;
-            let timeDiff = second.time - first.time;
 
-            if (timeDiff < this.PINCH_TIME_THRESHOLD) {
-                this.pinchActive = true;
-                console.log("Player pinch detected - Disabling friction!");
-
-                // Set friction to 0 only for player-to-player collisions
-                if (playerBodies.includes(bodyA) && playerBodies.includes(bodyB)) {
-                    contact.setFriction(0);
-                }
-            }
-        }
-
-        // Ensure restitution is set correctly
         for (let id in this.players) {
             let player = this.players[id];
-
             if ((bodyA === player.car.body && bodyB === this.walls) || (bodyB === player.car.body && bodyA === this.walls)) {
                 contact.setRestitution(0);
             }
-
             for (let otherId in this.players) {
                 if (id !== otherId) {
                     let otherPlayer = this.players[otherId];
@@ -540,48 +530,14 @@ export default class Game {
         }
     }
 
-
-
     onEndContact(contact) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
 
-        let ballWasInContact = (bodyA === this.ball.body || bodyB === this.ball.body);
-        let playerWasInContact = false;
-        let wallWasInContact = (bodyA === this.walls || bodyB === this.walls);
 
-        for (let id in this.players) {
-            let player = this.players[id];
-            if (bodyA === player.car.body || bodyB === player.car.body) {
-                playerWasInContact = true;
-            }
-        }
-
-        // If ball loses contact with either the wall or the player, reset pinchActive if last two contacts are too far apart
-        if (this.pinchActive && this.recentBallContacts.length === 2) {
-            let [first, second] = this.recentBallContacts;
-            let timeDiff = second.time - first.time;
-
-            if (timeDiff > this.PINCH_TIME_THRESHOLD) {
-                console.log("Pinch ended - Resetting friction");
-                this.pinchActive = false;
-            }
-        }
-
-        // Remove old player contacts when the ball is no longer touching any player
-        if (ballWasInContact && playerWasInContact) {
-            this.recentPlayerContacts = [];
-        }
-
-        // Remove old ball contacts when the ball is no longer touching a wall
-        if (ballWasInContact && wallWasInContact) {
-            this.recentBallContacts = [];
-        }
     }
-
-
 
 
 
@@ -690,39 +646,33 @@ export default class Game {
                         const baseForce = 1.5;  // Base force multiplier
                         const minScale = 1.5;   // Minimum force scale (prevents weak force at low speed)
                         const speedBoost = 0.5;   // Boosts low-speed force calculation
-                        const exponent = 0.1;   // Controls how force scales with speed
+                        const exponent = 0.5;   // Controls how force scales with speed
 
-                        let dampingPower = 10;
+                        let dampingPower = 0.75;
                         let dampingFactor = 1 - (ballDist) / (ballDist + dampingPower);
-                        dampingFactor = 1;
-
 
                         // Apply damping
-                        let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * dampingFactor;
+                        let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5);
+                        console.log(adjustedForceFactor, dampingFactor);
 
+                        adjustedForceFactor *= dampingFactor;
 
-                        adjustedForceFactor *= Math.abs(car.body.getAngularVelocity()) * 1;
-
-                        // right = 4
-                        // left = -4
-                        console.log(adjustedForceFactor);
-
+                        // adjustedForceFactor *= Math.abs(car.body.getAngularVelocity()) * 2;
 
                         const force = {
                             x: (ballDest.x - ballPos.x) * adjustedForceFactor,
                             y: (ballDest.y - ballPos.y) * adjustedForceFactor
                         };
-
-                        this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
+                        if (!this.pinchActive) {
+                            this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
+                        } else {
+                            console.log("PINCHING, not drubbling");
+                        }
                     }
-
-   
                 }
+
+
             }
-
-
-
-
         }
     }
 
@@ -815,7 +765,7 @@ export default class Game {
             team: !bot ? "blue" : "red",
             settings: {
                 mouseRange: 300,
-                sensitivity: 1.625,
+                sensitivity: 1.5,
                 username: ""
             }
         }

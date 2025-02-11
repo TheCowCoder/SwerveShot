@@ -332,7 +332,7 @@ redBotBtn.addEventListener("click", () => {
 
 const defaultSettings = {
     mouseRange: 300,
-    sensitivity: 1.625,
+    sensitivity: 1.5,
     username: ""
 };
 
@@ -498,7 +498,7 @@ botsBtn.addEventListener("click", () => {
             if (skillLevel != null || skillLevel != undefined) {
                 console.log("emitting bot skill", skillLevel);
                 socket.emit("bot skill", skillLevel);
-            }    
+            }
 
             inGame();
 
