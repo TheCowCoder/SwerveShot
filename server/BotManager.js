@@ -11,7 +11,7 @@ export default class BotManager {
         this.queueRunning = true;
         this.botQueueTimeout = this.botQueueInterval.bind(this);
 
-        this.botJoinDelay = 1000 * 10;
+        this.botJoinDelay = 1000 * 5;
 
         this.queueIntervals = {};
 

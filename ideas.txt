@@ -88,3 +88,8 @@ spawn players at kickoffs in lobby
 
 Fix dribbling force []
 fix player pinch detection
+
+fix end screen bugs
+
+
+promote in sideswipe promotion
