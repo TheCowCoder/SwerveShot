@@ -431,6 +431,8 @@ chatInput.addEventListener("keydown", function (e) {
                 socket.emit("bot");
             } else if (cmd == "bs") {
                 socket.emit("bs");
+            } else if (cmd == "team") {
+                socket.emit("team", args[0]);
             }
         } else {
             socket.emit("chat", msg);
