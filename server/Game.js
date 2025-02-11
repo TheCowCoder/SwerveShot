@@ -640,6 +640,8 @@ export default class Game {
                             ballPos.y - carRight.y * offset
                         );
 
+                        const DISTANCE_DAMPENING_SCALE = 0.5; // Adjust this to control the dampening effect
+
                         let ballDist = Vec2(ballPos).distance(ballDest);
                         const carSpeed = Vec2(car.body.getLinearVelocity()).magnitude();
 
@@ -648,7 +650,11 @@ export default class Game {
                         const speedBoost = 0.5;   // Boosts low-speed force calculation
                         const exponent = 0.5;   // Controls how force scales with speed
 
-                        let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5);
+                        // Calculate a distance-based damping factor
+                        let distanceDampingFactor = 1 / (1 + DISTANCE_DAMPENING_SCALE * ballDist);
+
+                        // Adjust the force factor based on speed and distance
+                        let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * distanceDampingFactor;
 
                         const force = {
                             x: (ballDest.x - ballPos.x) * adjustedForceFactor,
