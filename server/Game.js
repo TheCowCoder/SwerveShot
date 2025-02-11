@@ -648,16 +648,24 @@ export default class Game {
                         const speedBoost = 0.5;   // Boosts low-speed force calculation
                         const exponent = 0.5;   // Controls how force scales with speed
 
-                        let dampingPower = 0.75;
-                        let dampingFactor = 1 - (ballDist) / (ballDist + dampingPower);
-
-                        // Apply damping
                         let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5);
-                        console.log(adjustedForceFactor, dampingFactor);
 
-                        adjustedForceFactor *= dampingFactor;
+                        // let carAngularVel = car.body.getAngularVelocity();
+                        // let spinShotStrength = 5;
 
-                        // adjustedForceFactor *= Math.abs(car.body.getAngularVelocity()) * 2;
+                        // let minAngularVel = 5;  // Lower bound where force starts increasing
+                        // let maxAngularVel = 15; // Upper bound where force decreases
+                        // let peakAngularVel = minAngularVel + (maxAngularVel - minAngularVel) * 0.3; // Skewed towards lower values
+
+                        // // **Skewed Bell Curve Function**
+                        // let normalizedVel = (carAngularVel - peakAngularVel) / (maxAngularVel - minAngularVel);
+                        // let forceScale = Math.exp(-normalizedVel * normalizedVel * 6); // Skewing by increasing the multiplier
+
+                        // // Apply scaling to force factor
+                        // adjustedForceFactor *= 1 + spinShotStrength * forceScale;
+
+                        // console.log(adjustedForceFactor);
+
 
                         const force = {
                             x: (ballDest.x - ballPos.x) * adjustedForceFactor,
