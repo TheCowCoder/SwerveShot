@@ -22,7 +22,8 @@ export default class MatchMaker {
         this.queue[id] = {
             gameMode,
             avgMMR: this.players[id] !== undefined ? this.players[id].MMR : 0,
-            players: [id]
+            players: [id],
+            botsWaiting: 0
         }
 
         if (gameMode == "1v1") {
@@ -83,7 +84,7 @@ export default class MatchMaker {
     matchMake() {
         console.log("Matchmaking...");
         let MMR_THRESHOLD = 100;
-    
+
         for (let creatorId in this.queue) {
             let searchingGroup = this.queue[creatorId];
 
@@ -132,10 +133,10 @@ export default class MatchMaker {
 
         let game = new Game(this.io, this.botManager, false);
 
-        
+
         for (let id of _players) {
             const player = this.players[id];
-        
+
             if (player) {
                 game.playerJoined(player.socket);
                 player.game = game;
@@ -144,13 +145,13 @@ export default class MatchMaker {
 
         for (let id of _players) {
             const player = this.players[id];
-        
+
             if (!player) {
                 let botSkill = Math.pow(Math.random(), 0.5); // Adjust exponent to control bias strength
                 let bot = this.botManager.makeBot(game, this.io, id, botSkill);
             }
         }
-        
+
 
         this.io.to(game.id).emit("match made");
 
@@ -160,7 +161,7 @@ export default class MatchMaker {
             [p1, _players] = chooseRandom(_players);
             let p2;
             [p2, _players] = chooseRandom(_players);
-            
+
             game.players[p1].team = "blue";
             game.players[p2].team = "red";
 

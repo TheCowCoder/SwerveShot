@@ -4,7 +4,6 @@ export default class BotManager {
     constructor(matchMaker) {
         this.matchMaker = matchMaker;
         this.bots = {};
-        this.queueIntervals = {};
 
 
         this.updateRate = 1000 * 5;
@@ -13,6 +12,9 @@ export default class BotManager {
         this.botQueueTimeout = this.botQueueInterval.bind(this);
 
         this.botJoinDelay = 1000 * 10;
+
+        this.queueIntervals = {};
+
     }
 
     makeBot(game, io, id, skillLevel) {
@@ -29,8 +31,11 @@ export default class BotManager {
         console.log("Addding in bots");
         if (!this.queueRunning) return;
         for (let id in this.matchMaker.queue) {
-            if (this.matchMaker.queue[id].playersNeeded) {
+            console.log("Players needed", this.matchMaker.queue[id].playersNeeded);
+            if (this.matchMaker.queue[id].playersNeeded - this.matchMaker.queue[id].botsWaiting > 0) {
                 console.log("Adding one bot to game", id);
+                this.matchMaker.queue[id].botsWaiting++;
+
                 setTimeout(() => {
                     if (!this.matchMaker.queue[id]) {
                         console.log("No longer players needed, bot removed from q");
