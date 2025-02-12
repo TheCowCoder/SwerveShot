@@ -472,34 +472,34 @@ export default class Game {
         const fixtureB = contact.getFixtureB();
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
-    
+
         for (let id in this.players) {
             let player = this.players[id];
             for (let otherId in this.players) {
                 if (id !== otherId) {
                     let otherPlayer = this.players[otherId];
-    
+
                     if ((bodyA === player.car.body && bodyB === otherPlayer.car.body) ||
                         (bodyB === player.car.body && bodyA === otherPlayer.car.body)) {
-    
+
                         contact.setRestitution(0);
                         contact.setFriction(10);
-    
+
                         let velocityA = player.car.body.getLinearVelocity();
                         let velocityB = otherPlayer.car.body.getLinearVelocity();
                         let relativeVelocity = velocityA.clone().sub(velocityB);
                         let inverseForce = relativeVelocity.clone().mul(-0.5);
-    
+
                         player.car.body.applyLinearImpulse(inverseForce, player.car.body.getWorldCenter());
                         otherPlayer.car.body.applyLinearImpulse(inverseForce.mul(-1), otherPlayer.car.body.getWorldCenter());
-    
+
                         // **Rotation Correction**
                         let angleDiffA = player.car.body.getAngle() - player.prevAngle;
                         let angleDiffB = otherPlayer.car.body.getAngle() - otherPlayer.prevAngle;
-    
+
                         let correctionTorqueA = -angleDiffA * 10; // Adjust factor to fine-tune correction
                         let correctionTorqueB = -angleDiffB * 10;
-    
+
                         player.car.body.applyTorque(correctionTorqueA);
                         otherPlayer.car.body.applyTorque(correctionTorqueB);
                     }
@@ -507,52 +507,143 @@ export default class Game {
             }
         }
     }
-    
+
+
+    // onPostSolve(contact, impulse) {
+    //     const fixtureA = contact.getFixtureA();
+    //     const fixtureB = contact.getFixtureB();
+
+    //     const bodyA = fixtureA.getBody();
+    //     const bodyB = fixtureB.getBody();
+
+    //     let car = null;
+    //     let player = null;
+    //     let ballHit = false;
+
+    //     for (let id in this.players) {
+    //         const _player = this.players[id];
+
+    //         if (bodyA === _player.car.body) player = _player;
+    //         if (bodyB === _player.car.body) player = _player;
+
+    //         if ((bodyA === this.ball.body && player) || (bodyB === this.ball.body && player)) {
+    //             ballHit = true;
+    //         }
+
+    //         if (player && ballHit && player.settings.dribbleMagnet) {
+    //             const carPos = player.car.body.getPosition();
+    //             const ballPos = this.ball.body.getPosition();
+
+    //             const carForward = player.car.body.getWorldVector({ x: 0, y: -1 });
+
+    //             const carFrontEdge = {
+    //                 x: carPos.x + carForward.x * (this.CAR_HEIGHT / 2),
+    //                 y: carPos.y + carForward.y * (this.CAR_HEIGHT / 2),
+    //             };
+
+    //             const minFrontDist = (this.CAR_HEIGHT / 2) + (CONSTANTS.BALL_RADIUS / 2);
+
+    //             const ballToFront = {
+    //                 x: ballPos.x - carFrontEdge.x,
+    //                 y: ballPos.y - carFrontEdge.y,
+    //             };
+
+    //             const ballFrontDist = carForward.x * ballToFront.x + carForward.y * ballToFront.y;
+
+    //             if (ballFrontDist >= CONSTANTS.BALL_RADIUS / 2 - 0.1) {
+    //                 const normalImpulseSum = impulse.normalImpulses.reduce((sum, val) => sum + val, 0);
+
+    //                 const DRIBBLE_FORCE_THRESHOLD = 20;
+
+    //                 if (normalImpulseSum < DRIBBLE_FORCE_THRESHOLD) {
+    //                     const carRight = { x: -carForward.y, y: carForward.x };
+
+    //                     const offset = (carRight.x * ballToFront.x + carRight.y * ballToFront.y);
+
+    //                     const ballDest = Vec2(
+    //                         ballPos.x - carRight.x * offset,
+    //                         ballPos.y - carRight.y * offset
+    //                     )
+    //                     // ).add(carForward.mul(-0.1));
+
+    //                     const DISTANCE_DAMPENING_SCALE = 1; // Adjust this to control the dampening effect
+
+    //                     let ballDist = Vec2(ballPos).distance(ballDest);
+    //                     const carSpeed = Vec2(player.car.body.getLinearVelocity()).magnitude();
+
+    //                     const baseForce = 2;  // Base force multiplier
+    //                     const minScale = 2;   // Minimum force scale (prevents weak force at low speed)
+    //                     const speedBoost = 1;   // Boosts low-speed force calculation
+    //                     const exponent = 0.4;  // Controls how force scales with speed
+
+    //                     // Calculate a distance-based damping factor
+    //                     let distanceDampingFactor = 1 / (1 + DISTANCE_DAMPENING_SCALE * ballDist);
+
+    //                     // Adjust the force factor based on speed and distance
+    //                     let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * distanceDampingFactor;
+
+    //                     const force = {
+    //                         x: (ballDest.x - ballPos.x) * adjustedForceFactor,
+    //                         y: (ballDest.y - ballPos.y) * adjustedForceFactor
+    //                     };
+    //                     if (!this.pinchActive) {
+    //                         this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
+    //                     } else {
+    //                         console.log("PINCHING, not drubbling");
+    //                     }
+    //                 }
+    //             }
+
+
+    //         }
+    //     }
+    // }
+
 
     onPostSolve(contact, impulse) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
         const bodyA = fixtureA.getBody();
         const bodyB = fixtureB.getBody();
-    
+
         let playerA = null;
         let playerB = null;
-    
+
         // Identify players involved in the collision.
         for (let id in this.players) {
             let player = this.players[id];
             if (bodyA === player.car.body) playerA = player;
             if (bodyB === player.car.body) playerB = player;
         }
-    
+
         if (playerA && playerB) {
             // By default we want to cancel the push impulse.
             // pushFactor of 0 means “cancel fully” and 1 means “don’t cancel”.
-            let pushFactor = 0;
-    
+            let pushFactor = 1;
+
             const manifold = contact.getWorldManifold();
             const normal = Vec2(manifold.normal);
-    
+
             const velA = bodyA.getLinearVelocity();
             const velB = bodyB.getLinearVelocity();
-    
+
             // Project each car’s velocity onto the collision normal.
             const projA = normal.clone().mul(normal.dot(velA));
             const projB = normal.clone().mul(normal.dot(velB));
-    
+
             const magA = projA.magnitude();
             const magB = projB.magnitude();
-    
+
             // If they are nearly equal, nothing to do.
             if (Math.abs(magA - magB) < 0.001) return;
-    
+
             // Figure out which car is “pushing” by comparing the projections.
             // (In a rear-end collision the car behind will typically have a higher
             // projection along the normal.)
             // Also check the player’s desired input along the normal.
             const inputA = normal.dot(playerA.desiredVelocity || Vec2(0, 0));
             const inputB = normal.dot(playerB.desiredVelocity || Vec2(0, 0));
-    
+
             // If the car with the higher projected velocity is actually trying to push,
             // then we do not want to cancel its impulse (set pushFactor = 1).
             if (magA > magB && inputA > 0) {
@@ -560,7 +651,7 @@ export default class Game {
             } else if (magB > magA && inputB > 0) {
                 pushFactor = 1;
             }
-    
+
             // Now cancel the impulse on the car that is doing the pushing (i.e. the one
             // with the higher projection along the collision normal).
             if (magA > magB) {
@@ -575,8 +666,91 @@ export default class Game {
                 bodyB.applyLinearImpulse(cancelImpulse.mul(-1), bodyB.getWorldCenter(), true);
             }
         }
+
+        let player = null;
+        let ballHit = false;
+
+
+        for (let id in this.players) {
+            const _player = this.players[id];
+
+            if (bodyA === _player.car.body) player = _player;
+            if (bodyB === _player.car.body) player = _player;
+
+            if ((bodyA === this.ball.body && player) || (bodyB === this.ball.body && player)) {
+                ballHit = true;
+            }
+
+            if (player && ballHit && player.settings.dribbleMagnet) {
+                const carPos = player.car.body.getPosition();
+                const ballPos = this.ball.body.getPosition();
+
+                const carForward = player.car.body.getWorldVector({ x: 0, y: -1 });
+
+                const carFrontEdge = {
+                    x: carPos.x + carForward.x * (this.CAR_HEIGHT / 2),
+                    y: carPos.y + carForward.y * (this.CAR_HEIGHT / 2),
+                };
+
+                const minFrontDist = (this.CAR_HEIGHT / 2) + (CONSTANTS.BALL_RADIUS / 2);
+
+                const ballToFront = {
+                    x: ballPos.x - carFrontEdge.x,
+                    y: ballPos.y - carFrontEdge.y,
+                };
+
+                const ballFrontDist = carForward.x * ballToFront.x + carForward.y * ballToFront.y;
+
+                if (ballFrontDist >= CONSTANTS.BALL_RADIUS / 2 - 0.1) {
+                    const normalImpulseSum = impulse.normalImpulses.reduce((sum, val) => sum + val, 0);
+
+                    const DRIBBLE_FORCE_THRESHOLD = 20;
+
+                    if (normalImpulseSum < DRIBBLE_FORCE_THRESHOLD) {
+                        const carRight = { x: -carForward.y, y: carForward.x };
+
+                        const offset = (carRight.x * ballToFront.x + carRight.y * ballToFront.y);
+
+                        const ballDest = Vec2(
+                            ballPos.x - carRight.x * offset,
+                            ballPos.y - carRight.y * offset
+                        )
+                        // ).add(carForward.mul(-0.1));
+
+                        const DISTANCE_DAMPENING_SCALE = 1; // Adjust this to control the dampening effect
+
+                        let ballDist = Vec2(ballPos).distance(ballDest);
+                        const carSpeed = Vec2(player.car.body.getLinearVelocity()).magnitude();
+
+                        const baseForce = 2;  // Base force multiplier
+                        const minScale = 2;   // Minimum force scale (prevents weak force at low speed)
+                        const speedBoost = 1;   // Boosts low-speed force calculation
+                        const exponent = 0.4;  // Controls how force scales with speed
+
+                        // Calculate a distance-based damping factor
+                        let distanceDampingFactor = 1 / (1 + DISTANCE_DAMPENING_SCALE * ballDist);
+
+                        // Adjust the force factor based on speed and distance
+                        let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * distanceDampingFactor;
+
+                        const force = {
+                            x: (ballDest.x - ballPos.x) * adjustedForceFactor,
+                            y: (ballDest.y - ballPos.y) * adjustedForceFactor
+                        };
+                        if (!this.pinchActive) {
+                            this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
+                        } else {
+                            console.log("PINCHING, not drubbling");
+                        }
+                    }
+                }
+
+
+            }
+        }
+
     }
-    
+
 
 
     createObject(object, body) {
