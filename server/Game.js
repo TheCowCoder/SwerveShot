@@ -703,7 +703,7 @@ export default class Game {
                         )
                         // ).add(carForward.mul(-0.1));
 
-                        const DISTANCE_DAMPENING_SCALE = 1; // Adjust this to control the dampening effect
+                        const DISTANCE_DAMPENING_SCALE = 0.75; // Adjust this to control the dampening effect
 
                         let ballDist = Vec2(ballPos).distance(ballDest);
                         const carSpeed = Vec2(player.car.body.getLinearVelocity()).magnitude();
