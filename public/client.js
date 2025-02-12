@@ -336,10 +336,17 @@ redBotBtn.addEventListener("click", () => {
 });
 
 
+// let dribbleMagnetBtn = document.getElementById("dribbleMagnet");
+// dribbleMagnetBtn.addEventListener("click", () => {
+
+// });
+
+
 const defaultSettings = {
     mouseRange: 300,
     sensitivity: 1.5,
-    username: ""
+    username: "",
+    dribbleMagnet: true
 };
 
 // Check if 'settings' exists in localStorage
@@ -357,6 +364,7 @@ let usernameInp = document.getElementById("usernameInp");
 
 document.getElementById("mouseRange").value = settings.mouseRange;
 document.getElementById("mouseSensitivity").value = settings.sensitivity;
+document.getElementById("dribbleMagnet").checked = settings.dribbleMagnet;
 usernameInp.value = settings.username;
 
 usernameInp.addEventListener("input", () => {
@@ -380,10 +388,12 @@ document.getElementById("saveBtn").addEventListener("click", () => {
 
     let sensitivity = document.getElementById("mouseSensitivity").value;
     let mouseRange = document.getElementById("mouseRange").value;
+    let dribbleMagnet = document.getElementById("dribbleMagnet").checked;
 
     let newSettings = {
         sensitivity,
         mouseRange,
+        dribbleMagnet
     };
     socket.emit("settings", newSettings, (result) => {
         if (result) {
