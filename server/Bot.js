@@ -53,7 +53,7 @@ export default class Bot {
                 this.botDest = ballPos.add(toBall.mul(CONSTANTS.BALL_RADIUS + CONSTANTS.CAR_HEIGHT / 2 + 0.5));
                 let angleToDest = Math.atan2(this.botDest.y - carPos.y, this.botDest.x - carPos.x);
                 let angleDiff = Math.atan2(Math.sin(angleToDest - carAngle), Math.cos(angleToDest - carAngle));
-                
+
                 const angleThreshold = this.mapSkill(0.25, 0.001);
 
 
@@ -254,18 +254,18 @@ export default class Bot {
         }
 
         if (this.mode == "Attack" || this.mode == "Defend") {
-            
+
             let carPos = Vec2(this.player.car.body.getPosition());
 
             let dist = carPos.distance(this.botDest);
             let boostThreshold = 10;
-    
+
             if (dist > boostThreshold) {
                 this.boost();
             } else {
                 this.boost(false);
             }
-    
+
         }
 
         setTimeout(this.step, 1000 / this.FPS);
@@ -338,7 +338,6 @@ export default class Bot {
     }
 
     boost(on = true) {
-        return;
         if (on) {
             if (!this.boostOn) {
                 this.boostOn = true;
