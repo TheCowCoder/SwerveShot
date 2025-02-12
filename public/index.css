@@ -200,7 +200,7 @@ small {
     z-index: 9999;
 }
 
-#mouseRangeDiv {
+.settingsDiv {
     flex-direction: column !important;
 }
 

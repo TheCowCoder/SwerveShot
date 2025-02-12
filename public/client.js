@@ -346,7 +346,8 @@ const defaultSettings = {
     mouseRange: 300,
     sensitivity: 1.5,
     username: "",
-    dribbleMagnet: true
+    dribbleMagnet: true,
+    relativeMovement: true
 };
 
 // Check if 'settings' exists in localStorage
@@ -365,6 +366,8 @@ let usernameInp = document.getElementById("usernameInp");
 document.getElementById("mouseRange").value = settings.mouseRange;
 document.getElementById("mouseSensitivity").value = settings.sensitivity;
 document.getElementById("dribbleMagnet").checked = settings.dribbleMagnet;
+document.getElementById("relativeMovement").checked = settings.relativeMovement;
+
 usernameInp.value = settings.username;
 
 usernameInp.addEventListener("input", () => {
@@ -389,11 +392,13 @@ document.getElementById("saveBtn").addEventListener("click", () => {
     let sensitivity = document.getElementById("mouseSensitivity").value;
     let mouseRange = document.getElementById("mouseRange").value;
     let dribbleMagnet = document.getElementById("dribbleMagnet").checked;
+    let relativeMovement = document.getElementById("relativeMovement").checked;
 
     let newSettings = {
         sensitivity,
         mouseRange,
-        dribbleMagnet
+        dribbleMagnet,
+        relativeMovement
     };
     socket.emit("settings", newSettings, (result) => {
         if (result) {

@@ -338,6 +338,7 @@ export default class Bot {
     }
 
     boost(on = true) {
+        return;
         if (on) {
             if (!this.boostOn) {
                 this.boostOn = true;

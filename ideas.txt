@@ -96,6 +96,14 @@ fix losing control dribbling []
 
 promote in sideswipe promotion
 
-fix player collision
+fix player collision []
 
 make accounts + fix settings
+
+
+fix non pointer-disabled settings div
+
+
+add setting for non relative movement
+
+test if angle or position is disrupted by bumping w/ Zero

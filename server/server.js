@@ -57,7 +57,6 @@ io.on("connection", (socket) => {
         if (players[socket.id].game) {
             for (let id in players[socket.id].game.players) {
                 if (id in botManager.bots) {
-                    console.log("Setting bot skill", skillLevel);
                     botManager.bots[id].skillLevel = skillLevel;
                 }
             }
