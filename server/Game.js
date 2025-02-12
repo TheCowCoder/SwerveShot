@@ -688,6 +688,8 @@ export default class Game {
                 const ballFrontDist = carForward.x * ballToFront.x + carForward.y * ballToFront.y;
 
                 if (ballFrontDist >= CONSTANTS.BALL_RADIUS / 2 - 0.1) {
+
+
                     const normalImpulseSum = impulse.normalImpulses.reduce((sum, val) => sum + val, 0);
 
                     const DRIBBLE_FORCE_THRESHOLD = 20;
@@ -711,7 +713,7 @@ export default class Game {
                         const baseForce = 2;  // Base force multiplier
                         const minScale = 2;   // Minimum force scale (prevents weak force at low speed)
                         const speedBoost = 1;   // Boosts low-speed force calculation
-                        const exponent = 0.4;  // Controls how force scales with speed
+                        const exponent = 0.25;  // Controls how force scales with speed
 
                         // Calculate a distance-based damping factor
                         let distanceDampingFactor = 1 / (1 + DISTANCE_DAMPENING_SCALE * ballDist);
@@ -719,15 +721,36 @@ export default class Game {
                         // Adjust the force factor based on speed and distance
                         let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * distanceDampingFactor;
 
-                        const force = {
+
+                        let force = {
                             x: (ballDest.x - ballPos.x) * adjustedForceFactor,
                             y: (ballDest.y - ballPos.y) * adjustedForceFactor
                         };
+
                         if (!this.pinchActive) {
                             this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
                         } else {
                             console.log("PINCHING, not drubbling");
                         }
+
+
+                        // const angularVelocity = Math.abs(player.car.body.getAngularVelocity());
+
+                        // const baseEffect = 3.5; // Keeps small spins influential but prevents excessive scaling at low speeds
+                        // const growthFactor = 5; // Controls how aggressively spin boosts force
+
+                        // // Non-linear scaling that grows faster while remaining smooth
+                        // let spinFactor = baseEffect + (angularVelocity * Math.pow(angularVelocity, 1 / growthFactor));
+
+                        // let forceDir = player.car.body.getWorldVector(Vec2(-1, 0));
+                        // if (angularVelocity > 0) forceDir.mul(-1)
+
+                        // force = Vec2(ballDest.x - ballPos.x, ballDest.y - ballPos.y);
+
+                        // console.log(spinFactor);
+
+                        // this.ball.body.applyLinearImpulse(force.mul(spinFactor), this.ball.body.getWorldCenter());
+
                     }
                 }
 
@@ -940,6 +963,18 @@ export default class Game {
 
 
             player.desiredVelocity = Vec2(0, 0);
+
+            // Store peak angular velocity over short window
+            if (!player.recentMaxAngularVelocity) {
+                player.recentMaxAngularVelocity = 0;
+            }
+
+            // Decay the peak velocity over time (prevents old spins from affecting new shots)
+            player.recentMaxAngularVelocity *= 0.9;
+
+            // Update if current angular velocity is higher
+            player.recentMaxAngularVelocity = Math.max(player.recentMaxAngularVelocity, Math.abs(player.car.body.getAngularVelocity()));
+
 
 
 
