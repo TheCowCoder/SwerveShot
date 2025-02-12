@@ -92,4 +92,6 @@ fix player pinch detection
 fix end screen bugs
 
 
+fix losing control dribbling
+
 promote in sideswipe promotion
