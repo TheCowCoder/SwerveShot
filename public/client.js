@@ -298,6 +298,7 @@ let closeBtn = document.getElementById("closeBtn");
 let arrowKeysF = document.getElementById("arrowKeysFR");
 let keyboardControls = document.getElementById("keyboardControls");
 let mouseControls = document.getElementById("mouseControls");
+let noBoostFlip = document.getElementById("noBoostFlip");
 let reset = document.getElementById("reset");
 
 arrowKeysF.addEventListener("click", () => {
@@ -314,6 +315,11 @@ mouseControls.addEventListener("click", () => {
     overlay.style.display = "none";
 
 });
+
+noBoostFlip.addEventListener("click", () => {
+    socket.emit("preset", "noBoostFlip");
+    overlay.style.display = "none";
+})
 reset.addEventListener("click", () => {
     socket.emit("preset", "default");
     overlay.style.display = "none";

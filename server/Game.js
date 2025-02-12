@@ -1104,7 +1104,7 @@ export default class Game {
 
 
     mouseMove(id, dx, dy, w, h) {
-        if (this.preset == "default" || this.preset == "mouseControls") {
+        if (this.preset == "default" || this.preset == "mouseControls" || this.preset == "noBoostFlip") {
             const player = this.players[id];
             if (!player.inputs["mousePos"]) player.inputs["mousePos"] = Vec2(0, 0);
 
@@ -1153,6 +1153,10 @@ export default class Game {
             }
         } else if (this.preset == "arrowKeysFR") {
             if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "f", "r"].includes(key)) {
+                allow = true;
+            }
+        } else if (this.preset == "noBoostFlip") {
+            if (["w", "a", "s", "d", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Shift"].includes(key)) {
                 allow = true;
             }
         }
