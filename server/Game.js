@@ -602,56 +602,56 @@ export default class Game {
             if (bodyB === player.car.body) playerB = player;
         }
 
-        if (playerA && playerB) {
-            // By default we want to cancel the push impulse.
-            // pushFactor of 0 means “cancel fully” and 1 means “don’t cancel”.
-            let pushFactor = 1;
+        // if (playerA && playerB) {
+        //     // By default we want to cancel the push impulse.
+        //     // pushFactor of 0 means “cancel fully” and 1 means “don’t cancel”.
+        //     let pushFactor = 1;
 
-            const manifold = contact.getWorldManifold();
-            const normal = Vec2(manifold.normal);
+        //     const manifold = contact.getWorldManifold();
+        //     const normal = Vec2(manifold.normal);
 
-            const velA = bodyA.getLinearVelocity();
-            const velB = bodyB.getLinearVelocity();
+        //     const velA = bodyA.getLinearVelocity();
+        //     const velB = bodyB.getLinearVelocity();
 
-            // Project each car’s velocity onto the collision normal.
-            const projA = normal.clone().mul(normal.dot(velA));
-            const projB = normal.clone().mul(normal.dot(velB));
+        //     // Project each car’s velocity onto the collision normal.
+        //     const projA = normal.clone().mul(normal.dot(velA));
+        //     const projB = normal.clone().mul(normal.dot(velB));
 
-            const magA = projA.magnitude();
-            const magB = projB.magnitude();
+        //     const magA = projA.magnitude();
+        //     const magB = projB.magnitude();
 
-            // If they are nearly equal, nothing to do.
-            if (Math.abs(magA - magB) < 0.001) return;
+        //     // If they are nearly equal, nothing to do.
+        //     if (Math.abs(magA - magB) < 0.001) return;
 
-            // Figure out which car is “pushing” by comparing the projections.
-            // (In a rear-end collision the car behind will typically have a higher
-            // projection along the normal.)
-            // Also check the player’s desired input along the normal.
-            const inputA = normal.dot(playerA.desiredVelocity || Vec2(0, 0));
-            const inputB = normal.dot(playerB.desiredVelocity || Vec2(0, 0));
+        //     // Figure out which car is “pushing” by comparing the projections.
+        //     // (In a rear-end collision the car behind will typically have a higher
+        //     // projection along the normal.)
+        //     // Also check the player’s desired input along the normal.
+        //     const inputA = normal.dot(playerA.desiredVelocity || Vec2(0, 0));
+        //     const inputB = normal.dot(playerB.desiredVelocity || Vec2(0, 0));
 
-            // If the car with the higher projected velocity is actually trying to push,
-            // then we do not want to cancel its impulse (set pushFactor = 1).
-            if (magA > magB && inputA > 0) {
-                pushFactor = 1;
-            } else if (magB > magA && inputB > 0) {
-                pushFactor = 1;
-            }
+        //     // If the car with the higher projected velocity is actually trying to push,
+        //     // then we do not want to cancel its impulse (set pushFactor = 1).
+        //     if (magA > magB && inputA > 0) {
+        //         pushFactor = 1;
+        //     } else if (magB > magA && inputB > 0) {
+        //         pushFactor = 1;
+        //     }
 
-            // Now cancel the impulse on the car that is doing the pushing (i.e. the one
-            // with the higher projection along the collision normal).
-            if (magA > magB) {
-                // If car A is pushing, then cancel its impulse by applying a corrective impulse.
-                // (If pushFactor is 1, then (1 - pushFactor) is 0 – no cancellation.)
-                const cancelImpulse = projA.clone().mul(1 - pushFactor);
-                bodyA.applyLinearImpulse(cancelImpulse.mul(-1), bodyA.getWorldCenter(), true);
-                bodyA.setA
-            } else {
-                // Otherwise, cancel the impulse on car B.
-                const cancelImpulse = projB.clone().mul(1 - pushFactor);
-                bodyB.applyLinearImpulse(cancelImpulse.mul(-1), bodyB.getWorldCenter(), true);
-            }
-        }
+        //     // Now cancel the impulse on the car that is doing the pushing (i.e. the one
+        //     // with the higher projection along the collision normal).
+        //     if (magA > magB) {
+        //         // If car A is pushing, then cancel its impulse by applying a corrective impulse.
+        //         // (If pushFactor is 1, then (1 - pushFactor) is 0 – no cancellation.)
+        //         const cancelImpulse = projA.clone().mul(1 - pushFactor);
+        //         bodyA.applyLinearImpulse(cancelImpulse.mul(-1), bodyA.getWorldCenter(), true);
+        //         bodyA.setA
+        //     } else {
+        //         // Otherwise, cancel the impulse on car B.
+        //         const cancelImpulse = projB.clone().mul(1 - pushFactor);
+        //         bodyB.applyLinearImpulse(cancelImpulse.mul(-1), bodyB.getWorldCenter(), true);
+        //     }
+        // }
 
         let player = null;
         let ballHit = false;
