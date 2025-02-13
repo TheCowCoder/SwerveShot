@@ -257,7 +257,7 @@ export default class Bot {
 
             let carPos = Vec2(this.player.car.body.getPosition());
 
-            let dist = carPos.distance(this.botDest);
+            let dist = carPos.distance(this.game.ball.body.getPosition());
             let boostThreshold = 10;
 
             if (dist > boostThreshold) {

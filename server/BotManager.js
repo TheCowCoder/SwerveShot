@@ -28,7 +28,7 @@ export default class BotManager {
     }
 
     botQueueInterval() {
-        console.log("Addding in bots");
+        // console.log("Addding in bots");
         if (!this.queueRunning) return;
         for (let id in this.matchMaker.queue) {
             console.log("Players needed", this.matchMaker.queue[id].playersNeeded);

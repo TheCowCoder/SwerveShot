@@ -14,10 +14,8 @@ make field lines []
 
 try small car big ball
 try mouse bump mode
-get smooth cam working
 
 
-add display for ping;
 
 
 
@@ -29,8 +27,6 @@ fix kickoff angle []
 mess with ball angulardamping and car []
 
 try dribble assist []
-
-make ballcam or and ball indicator
 
 
 update controls and settings []
@@ -46,17 +42,15 @@ Attack mode:
 position self behind ball facing player's goal and flip ball into goal.
 When player touches the ball, enter defend mode
 
-make kickoffs cycle
+
 
 Make preset game settings presets like only keyboard controls []
 Make 1v1 bot with or without same controls as it on home page []
 
-add backwardsFlipsUsed to stats page
 
 
 add backwards flip to controls []
 
-find a gpt model that can handle the whole project, ask as a professional developer, to rewrite it
 
 make bots leave games and close games []
 
@@ -66,7 +60,7 @@ if bot is certain distance from car, boost []
 
 
 Next:
-Make sure bot boosting is fixed
+
 make skill level for bot from 0 to 1 []
 add bots to ranked queue []
 - every interval, check if player is needed []
@@ -74,36 +68,66 @@ add bots to ranked queue []
   - fix if player leaves queue before timeout, don't join []
 
 make pinching work by disabling friction on contact []
+AT SOME POINT: Fix pinch detected randomly after pinch []
 
 
 do big test of bot queue []
 mess with car friction []
 
-1v1 someone with plan
-- test player pinching
 
-
-spawn players at kickoffs in lobby
 
 
 Fix dribbling force []
-fix player pinch detection
 
 fix end screen bugs
 
 
 fix losing control dribbling []
 
-promote in sideswipe promotion
+
 
 fix player collision []
 
+
+
+
+
+
+add setting for non relative movement []
+
+
+
+
+
+-- OLD --
+fix non pointer-disabled settings div
 make accounts + fix settings
 
+promote in sideswipe promotion
 
-fix non pointer-disabled settings div
+1v1 someone with plan
+- test player pinching
+- test if angle or position is disrupted by bumping
+
+fix player pinch detection
+Make sure bot boosting is fixed
+find a gpt model that can handle the whole project, ask as a professional developer, to rewrite it
+add backwardsFlipsUsed to stats page
+make kickoffs cycle
+add display for ping
+get smooth cam working
+make ballcam or and ball indicator
 
 
-add setting for non relative movement
 
-test if angle or position is disrupted by bumping w/ Zero
+-- NEW --
+swerveshot
+bigger map
+angular camera lock mode
+make collisions and weights like RL
+make cars weigh more
+
+consider making flip push ball same amount as in rl
+and move player same amount
+
+goal speed indicator

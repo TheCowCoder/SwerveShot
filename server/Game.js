@@ -483,25 +483,25 @@ export default class Game {
                         (bodyB === player.car.body && bodyA === otherPlayer.car.body)) {
 
                         contact.setRestitution(0);
-                        contact.setFriction(10);
+                        contact.setFriction(0);
 
-                        let velocityA = player.car.body.getLinearVelocity();
-                        let velocityB = otherPlayer.car.body.getLinearVelocity();
-                        let relativeVelocity = velocityA.clone().sub(velocityB);
-                        let inverseForce = relativeVelocity.clone().mul(-0.5);
+                        // let velocityA = player.car.body.getLinearVelocity();
+                        // let velocityB = otherPlayer.car.body.getLinearVelocity();
+                        // let relativeVelocity = velocityA.clone().sub(velocityB);
+                        // let inverseForce = relativeVelocity.clone().mul(-0.5);
 
-                        player.car.body.applyLinearImpulse(inverseForce, player.car.body.getWorldCenter());
-                        otherPlayer.car.body.applyLinearImpulse(inverseForce.mul(-1), otherPlayer.car.body.getWorldCenter());
+                        // player.car.body.applyLinearImpulse(inverseForce, player.car.body.getWorldCenter());
+                        // otherPlayer.car.body.applyLinearImpulse(inverseForce.mul(-1), otherPlayer.car.body.getWorldCenter());
 
-                        // **Rotation Correction**
-                        let angleDiffA = player.car.body.getAngle() - player.prevAngle;
-                        let angleDiffB = otherPlayer.car.body.getAngle() - otherPlayer.prevAngle;
+                        // // **Rotation Correction**
+                        // let angleDiffA = player.car.body.getAngle() - player.prevAngle;
+                        // let angleDiffB = otherPlayer.car.body.getAngle() - otherPlayer.prevAngle;
 
-                        let correctionTorqueA = -angleDiffA * 10; // Adjust factor to fine-tune correction
-                        let correctionTorqueB = -angleDiffB * 10;
+                        // let correctionTorqueA = -angleDiffA * 10; // Adjust factor to fine-tune correction
+                        // let correctionTorqueB = -angleDiffB * 10;
 
-                        player.car.body.applyTorque(correctionTorqueA);
-                        otherPlayer.car.body.applyTorque(correctionTorqueB);
+                        // player.car.body.applyTorque(correctionTorqueA);
+                        // otherPlayer.car.body.applyTorque(correctionTorqueB);
                     }
                 }
             }
@@ -555,6 +555,7 @@ export default class Game {
                         console.log("PINCH STARTED!");
                         this.pinchActive = true;
                         contact.setFriction(0);
+                        this.recentBallContacts = [];
 
                         setTimeout(() => {
                             console.log("PINCH is over .")
@@ -697,59 +698,97 @@ export default class Game {
                     if (normalImpulseSum < DRIBBLE_FORCE_THRESHOLD) {
                         const carRight = { x: -carForward.y, y: carForward.x };
 
+                        // const offset = (carRight.x * ballToFront.x + carRight.y * ballToFront.y);
+
+                        // const ballDest = Vec2(
+                        //     ballPos.x - carRight.x * offset,
+                        //     ballPos.y - carRight.y * offset
+                        // )
+                        // // ).add(carForward.mul(-0.1));
+
+                        // const DISTANCE_DAMPENING_SCALE = 0.75; // Adjust this to control the dampening effect
+
+                        // let ballDist = Vec2(ballPos).distance(ballDest);
+                        // const carSpeed = Vec2(player.car.body.getLinearVelocity()).magnitude();
+
+                        // const baseForce = 2;  // Base force multiplier
+                        // const minScale = 2;   // Minimum force scale (prevents weak force at low speed)
+                        // const speedBoost = 1;   // Boosts low-speed force calculation
+                        // const exponent = 0.25;  // Controls how force scales with speed
+
+                        // // Calculate a distance-based damping factor
+                        // let distanceDampingFactor = 1 / (1 + DISTANCE_DAMPENING_SCALE * ballDist);
+
+                        // // Adjust the force factor based on speed and distance
+                        // let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * distanceDampingFactor;
+
+
+                        // let force = {
+                        //     x: (ballDest.x - ballPos.x) * adjustedForceFactor,
+                        //     y: (ballDest.y - ballPos.y) * adjustedForceFactor
+                        // };
+
+
+
+                        // --- DRIBBLE FORCE SETTINGS ---
+                        const DRIBBLE_BASE_FORCE = 0.75;       // Base force always pushing the ball forward
+                        const DRIBBLE_START_FORCE = 1;      // Lateral force when ball contact is at front center
+                        const DRIBBLE_MAX_FORCE = 3;        // Maximum lateral force allowed
+                        let DRIBBLE_EXP_GROWTH_FACTOR = 1.85; // Exponential growth factor for lateral force
+
+                        // DRIBBLE_EXP_GROWTH_FACTOR *= player.car.body.getLinearVelocity().length() * 0.5;
+
+                        // --- Assume these vectors are already defined ---
+                        // carForward: unit vector pointing in the car’s forward direction
+                        // carRight: computed as { x: -carForward.y, y: carForward.x }
+                        // ballPos: current position of the ball
+                        // ballToFront: vector from the car’s front center to the ball’s contact point
+
+                        // Calculate the lateral offset from the front center along the car’s right direction.
                         const offset = (carRight.x * ballToFront.x + carRight.y * ballToFront.y);
 
-                        const ballDest = Vec2(
-                            ballPos.x - carRight.x * offset,
-                            ballPos.y - carRight.y * offset
-                        )
-                        // ).add(carForward.mul(-0.1));
-
-                        const DISTANCE_DAMPENING_SCALE = 0.75; // Adjust this to control the dampening effect
-
-                        let ballDist = Vec2(ballPos).distance(ballDest);
-                        const carSpeed = Vec2(player.car.body.getLinearVelocity()).magnitude();
-
-                        const baseForce = 2;  // Base force multiplier
-                        const minScale = 2;   // Minimum force scale (prevents weak force at low speed)
-                        const speedBoost = 1;   // Boosts low-speed force calculation
-                        const exponent = 0.25;  // Controls how force scales with speed
-
-                        // Calculate a distance-based damping factor
-                        let distanceDampingFactor = 1 / (1 + DISTANCE_DAMPENING_SCALE * ballDist);
-
-                        // Adjust the force factor based on speed and distance
-                        let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * distanceDampingFactor;
+                        // --- Lateral (side-correcting) force ---
+                        // We want the force to be low when the ball is near the center (offset ~ 0)
+                        // and to grow exponentially (up to a cap) as the ball’s contact point moves toward either end.
+                        const lateralForceMagnitude = Math.min(
+                            DRIBBLE_START_FORCE * Math.exp(DRIBBLE_EXP_GROWTH_FACTOR * Math.abs(offset)),
+                            DRIBBLE_MAX_FORCE
+                        );
 
 
-                        let force = {
-                            x: (ballDest.x - ballPos.x) * adjustedForceFactor,
-                            y: (ballDest.y - ballPos.y) * adjustedForceFactor
+                        // The direction: if the ball is to the right (offset > 0), we push it left (i.e. -carRight),
+                        // and vice-versa if the ball is to the left.
+                        const lateralForce = {
+                            x: -carRight.x * Math.sign(offset) * lateralForceMagnitude,
+                            y: -carRight.y * Math.sign(offset) * lateralForceMagnitude
                         };
 
+                        // --- Base forward force ---
+                        // This ensures the ball always gets a slight nudge in the car’s forward direction.
+                        const forwardForce = {
+                            x: carForward.x * DRIBBLE_BASE_FORCE,
+                            y: carForward.y * DRIBBLE_BASE_FORCE
+                        };
+
+                        // Combine both forces.
+                        const totalForce = {
+                            x: forwardForce.x + lateralForce.x,
+                            y: forwardForce.y + lateralForce.y
+                        };
+
+                        // Apply the force if not in "pinch" mode.
                         if (!this.pinchActive) {
-                            this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
+                            this.ball.body.applyLinearImpulse(totalForce, this.ball.body.getWorldCenter());
                         } else {
-                            console.log("PINCHING, not drubbling");
+                            console.log("PINCHING, not dribbling");
                         }
 
 
-                        // const angularVelocity = Math.abs(player.car.body.getAngularVelocity());
-
-                        // const baseEffect = 3.5; // Keeps small spins influential but prevents excessive scaling at low speeds
-                        // const growthFactor = 5; // Controls how aggressively spin boosts force
-
-                        // // Non-linear scaling that grows faster while remaining smooth
-                        // let spinFactor = baseEffect + (angularVelocity * Math.pow(angularVelocity, 1 / growthFactor));
-
-                        // let forceDir = player.car.body.getWorldVector(Vec2(-1, 0));
-                        // if (angularVelocity > 0) forceDir.mul(-1)
-
-                        // force = Vec2(ballDest.x - ballPos.x, ballDest.y - ballPos.y);
-
-                        // console.log(spinFactor);
-
-                        // this.ball.body.applyLinearImpulse(force.mul(spinFactor), this.ball.body.getWorldCenter());
+                        // if (!this.pinchActive) {
+                        //     this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
+                        // } else {
+                        //     console.log("PINCHING, not drubbling");
+                        // }
 
                     }
                 }
