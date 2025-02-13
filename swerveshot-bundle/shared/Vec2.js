@@ -1,4 +1,3 @@
-// Vec2.js
 export class Vec2Class {
     constructor(x = 0, y = 0) {
         if (isNaN(x)) {
@@ -9,7 +8,7 @@ export class Vec2Class {
             this.y = y;
         }
     }
-    
+
     dot(vec) {
         return this.x * vec.x + this.y * vec.y;
     }
@@ -19,15 +18,21 @@ export class Vec2Class {
     }
 
     add(vec) {
-        return new Vec2Class(this.x + vec.x, this.y + vec.y);
+        this.x += vec.x;
+        this.y += vec.y;
+        return this;
     }
 
     sub(vec) {
-        return new Vec2Class(this.x - vec.x, this.y - vec.y);
+        this.x -= vec.x;
+        this.y -= vec.y;
+        return this;
     }
 
     mul(scalar) {
-        return new Vec2Class(this.x * scalar, this.y * scalar);
+        this.x *= scalar;
+        this.y *= scalar;
+        return this;
     }
 
     magnitude() {
@@ -36,7 +41,14 @@ export class Vec2Class {
 
     normalize() {
         const mag = this.magnitude();
-        return mag === 0 ? new Vec2Class(0, 0) : new Vec2Class(this.x / mag, this.y / mag);
+        if (mag !== 0) {
+            this.x /= mag;
+            this.y /= mag;
+        } else {
+            this.x = 0;
+            this.y = 0;
+        }
+        return this;
     }
 
     clone() {

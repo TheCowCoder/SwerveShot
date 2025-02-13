@@ -123,7 +123,15 @@ make ballcam or and ball indicator
 -- NEW --
 swerveshot
 bigger map
+
+
 angular camera lock mode
+- fix jump in rotation from e.deltaX changing
+- tweak settings
+- implement perspective shift to make easier to see and see more of map
+
+- add settings for position and angle smoothing
+
 make collisions and weights like RL
 make cars weigh more
 
@@ -131,3 +139,13 @@ consider making flip push ball same amount as in rl
 and move player same amount
 
 goal speed indicator
+
+
+make color indicator for field sides
+
+
+switch to pixi
+- fix antialiasing
+- fix camera
+- add renderer back
+- try unadjustedMovement = true

@@ -5,17 +5,17 @@ export default class Renderer {
         this.dt = 1 / FPS;    // Fixed time step per frame
         this.elapsedTime = 0;
         this.accumulator = 0;
-        
+
         this.currentTime = performance.now();
         this.lastUpdateTime = performance.now();
-        
+
         this.running = true;
-        
+
         this.animate = this.animate.bind(this);
         this.animate(this.currentTime);
-        
+
         this.alpha = 0;
-        
+
         // Add a timer to log FPS every second
         this.lastLogTime = this.currentTime;
     }
@@ -43,7 +43,7 @@ export default class Renderer {
             // Calculate FPS for debugging purposes and log every second
             const fps = 1 / updateTime;
             const now = performance.now();
-            
+
             if (now - this.lastLogTime >= 1000) { // 1000ms = 1 second
                 // console.log(`FPS: ${fps.toFixed(2)}`);
                 this.lastLogTime = now; // Update last log time
@@ -53,7 +53,7 @@ export default class Renderer {
             this.accumulator -= this.dt;
 
             // Run game logic (you can add the actual game step logic here)
-            this.game.step(updateTime);
+            this.game.step(frameTime);
 
             // Reset alpha if needed (used in interpolation or other things)
             this.alpha = 0;

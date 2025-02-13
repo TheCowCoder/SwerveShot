@@ -1,5 +1,4 @@
 import Renderer from "./Renderer.js";
-import * as Const from "../shared/CONSTANTS.js";
 import planck from "planck-js";
 import { Vec2 } from "../shared/Vec2.js";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
@@ -560,7 +559,7 @@ export default class Game {
                         setTimeout(() => {
                             console.log("PINCH is over .")
                             this.pinchActive = false;
-                        }, 100);
+                        }, 250);
                     }
                 }
             }
@@ -988,7 +987,7 @@ export default class Game {
 
 
 
-    step() {
+    step(frameTime) {
         this.world.step(1 / this.FPS, this.VELOCITY_ITER, this.POSITION_ITER);
 
         for (let id in this.players) {
@@ -1016,28 +1015,112 @@ export default class Game {
 
 
 
+            // Helper to normalize any angle to the [-π, π] range
+            function normalizeAngle(angle) {
+                return Math.atan2(Math.sin(angle), Math.cos(angle));
+            }
+
+            // Helper to linearly interpolate between two angles
+            function lerpAngle(a, b, t) {
+                // Compute the shortest difference
+                let diff = normalizeAngle(b - a);
+                return normalizeAngle(a + diff * t);
+            }
+
+            if (player.inputs.mousePos) {
+                // Convert pixels to radians (tweak this sensitivity to your liking)
+                const sensitivity = 0.0025;
+
+                // Determine the target angle from the mouse's horizontal offset
+                const canvasCenterX = player.canvasWidth / 2;
+                const targetAngle = (player.inputs.mousePos.x - canvasCenterX) * sensitivity;
+
+                // Get the car's current angle
+                const currentAngle = player.car.body.getAngle();
+
+                // Compute the shortest angular difference (normalized to [-π, π])
+                let angleDiff = targetAngle - currentAngle;
+                angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
+
+                // Set the car's turning speed. A higher turnPower means faster response.
+                const turnPower = 25;
+                player.car.body.setAngularVelocity(turnPower * angleDiff);
+            }
+
+
+
+
+            // if (player.inputs.mousePos) {
+
+            //     // Sensitivity converts pixel movement into radians
+            //     let sensitivity = 0.0025;
+
+            //     // Get and normalize the current angle of the car
+            //     let carAngle = player.car.body.getAngle();
+            //     carAngle = Math.atan2(Math.sin(carAngle), Math.cos(carAngle));
+
+            //     let canvasCenterX = player.canvasWidth / 2;
+            //     let offsetX = player.inputs.mousePos.x - canvasCenterX;
+
+            //     // Calculate target angle from the mouse offset, then normalize it
+            //     let targetAngle = offsetX * sensitivity;
+            //     targetAngle = Math.atan2(Math.sin(targetAngle), Math.cos(targetAngle));
+
+            //     // Initialize smoothedAngle if it hasn't been set yet
+            //     if (player.smoothedAngle === undefined) {
+            //         player.smoothedAngle = carAngle;
+            //     }
+
+            //     // Compute the shortest angular difference between the target and the smoothed angle
+            //     let diffToTarget = Math.atan2(
+            //         Math.sin(targetAngle - player.smoothedAngle),
+            //         Math.cos(targetAngle - player.smoothedAngle)
+            //     );
+
+            //     // Smoothly interpolate towards the target angle
+            //     let smoothingFactor = 0.25;
+            //     player.smoothedAngle += diffToTarget * smoothingFactor;
+            //     // Normalize after updating
+            //     player.smoothedAngle = Math.atan2(
+            //         Math.sin(player.smoothedAngle),
+            //         Math.cos(player.smoothedAngle)
+            //     );
+
+            //     // Calculate the angular difference between the smoothed angle and the current car angle
+            //     let angleDiff = Math.atan2(
+            //         Math.sin(player.smoothedAngle - carAngle),
+            //         Math.cos(player.smoothedAngle - carAngle)
+            //     );
+
+            //     // Calculate and apply angular velocity
+            //     let turnPower = 20;
+            //     let angularVelocity = angleDiff * turnPower;
+            //     player.car.body.setAngularVelocity(angularVelocity);
+            // }
+
+
 
             // Handle turning
             if (player.inputs["mousePos"]) {
 
-                let carPos = player.car.body.getPosition().clone();
-                let mousePos = player.inputs["mousePos"].mul(1 / CONSTANTS.SCALE).add(carPos);
+                // let carPos = player.car.body.getPosition().clone();
+                // let mousePos = player.inputs["mousePos"].mul(1 / CONSTANTS.SCALE).add(carPos);
 
-                // this.io.to(this.id).emit("debug dot", mousePos);
+                // // this.io.to(this.id).emit("debug dot", mousePos);
 
-                // Compute the vector from the car to the mouse
-                let deltaX = mousePos.x - carPos.x;
-                let deltaY = mousePos.y - carPos.y;
+                // // Compute the vector from the car to the mouse
+                // let deltaX = mousePos.x - carPos.x;
+                // let deltaY = mousePos.y - carPos.y;
 
-                // Get the angle to the mouse position
-                let mouseAngle = Math.atan2(deltaY, deltaX);
+                // // Get the angle to the mouse position
+                // let mouseAngle = Math.atan2(deltaY, deltaX);
 
-                // Normalize the angle difference
-                let angleDiff = mouseAngle - carAngle;
-                angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)); // Ensures range [-π, π]
+                // // Normalize the angle difference
+                // let angleDiff = mouseAngle - carAngle;
+                // angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)); // Ensures range [-π, π]
 
-                let turnPower = 10;
-                player.car.body.setAngularVelocity(angleDiff * turnPower);
+                // let turnPower = 10;
+                // player.car.body.setAngularVelocity(angleDiff * turnPower);
 
 
             } else {
@@ -1265,23 +1348,31 @@ export default class Game {
     mouseMove(id, dx, dy, w, h) {
         if (this.preset == "default" || this.preset == "mouseControls" || this.preset == "noBoostFlip" || id in this.botManager.bots) {
             const player = this.players[id];
-            if (!player.inputs["mousePos"]) player.inputs["mousePos"] = Vec2(0, 0);
 
-            let sens = player.settings.sensitivity;
-            let mousePos = player.inputs["mousePos"].add(Vec2(dx * sens, dy * sens));
+            if (!player.inputs.mousePos) player.inputs.mousePos = Vec2(0, 0);
 
-            let mouseDir = Vec2(mousePos).normalize();
-            let mouseRange = player.settings.mouseRange;
-            if (mousePos.magnitude() > mouseRange) {
-                mousePos = mouseDir.mul(mouseRange);
-            }
 
-            this.io.to(id).emit("mouse pos", mousePos);
 
-            this.players[id].inputs["mousePos"] = mousePos;
-            this.players[id].canvasWidth = w;
-            this.players[id].canvasHeight = h;
+            player.inputs.mousePos.add(Vec2(dx, dy));
+
+            // let sens = player.settings.sensitivity;
+            // let mousePos = player.inputs["mousePos"].add(Vec2(dx * sens, dy * sens));
+
+            // let mouseDir = Vec2(mousePos).normalize();
+            // let mouseRange = player.settings.mouseRange;
+            // if (mousePos.magnitude() > mouseRange) {
+            //     mousePos = mouseDir.mul(mouseRange);
+            // }
+
+            // this.io.to(id).emit("mouse pos", mousePos);
+
+            // this.players[id].inputs["mousePos"] = mousePos;
+            // this.players[id].canvasWidth = w;
+            // this.players[id].canvasHeight = h;
         }
+
+        this.players[id].canvasWidth = w;
+        this.players[id].canvasHeight = h;
     }
 
     mouseDown(id, button) {
