@@ -33594,7 +33594,7 @@ var PIXI = (function (exports) {
      * @example
      * // Create a new application
      * const app = new PIXI.Application();
-     * document.body.appendChild(app.view);
+     * document.body.appendChild(app.canvas);
      *
      * // Don't start rendering right away
      * app.stop();
@@ -41982,7 +41982,7 @@ var PIXI = (function (exports) {
      * const app = new PIXI.Application();
      *
      * // Add the view to the DOM
-     * document.body.appendChild(app.view);
+     * document.body.appendChild(app.canvas);
      *
      * // ex, add display objects
      * app.stage.addChild(PIXI.Sprite.from('something.png'));
@@ -43106,7 +43106,7 @@ var PIXI = (function (exports) {
      *
      * // Display rectangle
      * app.stage.addChild(rect);
-     * document.body.appendChild(app.view);
+     * document.body.appendChild(app.canvas);
      * @namespace PIXI.filters
      */
     var filters = {

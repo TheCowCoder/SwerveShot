@@ -1008,7 +1008,7 @@ class Renderer {
         const deltaTime = frameTime - this.lastFrameTime;
         this.lastFrameTime = frameTime;
 
-        const timeSinceUpdate = Date.now() - this.lastServerUpdateTime;
+        const timeSinceUpdate = performance.now() - this.lastServerUpdateTime;
         const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1);
 
         for (let id in this.currentServerState) {

@@ -1,11 +1,13 @@
 
-import Camera from './Camera.js';
+import Camera from './Camera111.js';
 import { io } from "socket.io-client";
 import * as PIXI from 'pixi.js';
-import { stringToHex } from '@pixi/utils';
 import "./index.css";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
 import { Vec2 } from "../shared/Vec2.js";
+
+
+
 
 // Global variables
 let debugDot;
@@ -19,16 +21,60 @@ let app;
 let uiContainer;
 let worldContainer;
 
-function setupPixi() {
+const spriteCache = {};
 
-    // Create a Pixi Application using your existing canvas element
-    app = new PIXI.Application({
-        view: document.getElementById('gameCanvas'),
+
+
+async function loadAssets() {
+    try {
+        // Load all assets as an array
+        const assets = await PIXI.Assets.load([
+            "/assets/ball.png",
+            "/assets/botOne.png",
+            "/assets/botTwo.png",
+            "/assets/carBlue.png",
+            "/assets/carRed.png"
+        ]);
+
+        console.log("Assets loaded successfully!");
+
+        // Manually assign textures to a spriteCache with custom keys
+        spriteCache["ball"] = PIXI.Assets.get("/assets/ball.png");
+        spriteCache["botOne"] = PIXI.Assets.get("/assets/botOne.png");
+        spriteCache["botTwo"] = PIXI.Assets.get("/assets/botTwo.png");
+        spriteCache["carBlue"] = PIXI.Assets.get("/assets/carBlue.png");
+        spriteCache["carRed"] = PIXI.Assets.get("/assets/carRed.png");
+
+    } catch (error) {
+        console.error("Error loading assets:", error);
+    }
+}
+
+
+
+async function setupPixi() {
+
+    const gameCanvas = document.getElementById('gameCanvas');
+    if (!(gameCanvas instanceof HTMLCanvasElement)) {
+        return console.error("The #gameCanvas element is not a canvas!");
+    }
+
+    app = new PIXI.Application();
+
+    await app.init({
+        view: gameCanvas,
         resizeTo: window,
         backgroundColor: 0x3a9f58,
-        antialias: true
-    });
-    const canvas = app.view; // for pointer lock etc.
+        antialias: true,
+
+    })
+    // resolution: window.devicePixelRatio || 1, // Resolution for retina displays
+
+
+    await loadAssets();
+
+
+    const canvas = app.canvas; // for pointer lock etc.
 
 
     // Lock and hide the cursor on click
@@ -52,42 +98,55 @@ function setupPixi() {
     // Create the camera instance (ensure your Camera class works with PIXI containers)
     camera = new Camera(CONSTANTS.SCALE, app);
 
+
+
     // Create a container for all world objects so that the camera transform can be applied
     worldContainer = new PIXI.Container();
     camera.container.addChild(worldContainer);
+
+
 
     // Create a separate container for UI overlays (like FPS text) that should not be transformed by the camera
     uiContainer = new PIXI.Container();
     camera.container.addChild(uiContainer);
 
-    app.view.addEventListener('mousemove', (event) => {
-        if (document.pointerLockElement === app.view && !exittingPointerLock) {
-            socket.emit("mousemove", event.movementX, event.movementY, app.view.width, app.view.height);
+    app.canvas.addEventListener('mousemove', (event) => {
+        if (document.pointerLockElement === app.canvas && !exittingPointerLock) {
+            socket.emit("mousemove", event.movementX, event.movementY, app.canvas.width, app.canvas.height);
         }
     });
 
-    app.view.addEventListener("mousedown", (e) => {
+    app.canvas.addEventListener("mousedown", (e) => {
         socket.emit("mousedown", e.button);
     });
 
-    app.view.addEventListener("mouseup", (e) => {
+    app.canvas.addEventListener("mouseup", (e) => {
         socket.emit("mouseup", e.button);
     });
 
-    app.view.addEventListener("wheel", (e) => {
+    app.canvas.addEventListener("wheel", (e) => {
         camera.setScale(camera.scale + e.deltaY * 0.00025);
         customScale = true;
         scaleBtn.style.display = null;
         e.preventDefault();
     });
 
+
 }
 
 
+window.onload = () => {
+    setupPixi();
+};
 
 // #region Socket events
 
+console.log("Attempting socket connection");
 let socket = io({ reconnection: false });
+// const socket = io("http://localhost:3000", { reconnection: false });
+
+
+
 let ourId;
 let mousePos;
 let settings;
@@ -312,6 +371,18 @@ document.addEventListener("wheel", (e) => {
 
 // #region UI Control
 
+
+function degToRad(degrees) {
+    return degrees * (Math.PI / 180);
+}
+
+let tiltSlider = document.getElementById("tiltSlider");
+
+tiltSlider.addEventListener("input", (e) => {
+    console.log(tiltSlider.value);
+    camera.setPerspective(degToRad(-tiltSlider.value));
+    console.log(camera.position);
+});
 
 
 let settingsBtn = document.getElementById("settingsBtn");
@@ -548,8 +619,6 @@ botsBtn.addEventListener("click", () => {
                 socket.emit("bot skill", skillLevel);
             }
 
-            inGame();
-
             socket.emit("settings", {
                 username: usernameInp.value
             });
@@ -618,8 +687,6 @@ privateBtn.addEventListener("click", () => {
         restoreButtons(originalButtons);
 
 
-
-        inGame();
     });
 
     document.getElementById("joinRoomBtn").addEventListener("click", () => {
@@ -681,7 +748,7 @@ let renderer;
 
 
 function inGame() {
-
+    // console.log("IN GAME");
     renderer = new Renderer();
 
     document.getElementById("menu").style.display = "none";
@@ -691,13 +758,14 @@ function inGame() {
     searching.style.display = "none";
 }
 function restoreButtons(originalHTML) {
+    console.log("RESTORE BUTTONS", buttonContainer, originalHTML);
     buttonContainer.innerHTML = originalHTML;
     // console.log(document.getElementById("privateBtn"));
 
-    // // Reattach the event listener to the private button
-    // document.getElementById("privateBtn").addEventListener("click", () => {
-    //     privateBtn.click();
-    // });
+    // Reattach the event listener to the private button
+    document.getElementById("privateBtn").addEventListener("click", () => {
+        privateBtn.click();
+    });
 }
 
 
@@ -707,7 +775,6 @@ function restoreButtons(originalHTML) {
 
 
 
-const spriteCache = {};
 
 
 //
@@ -721,6 +788,7 @@ function renderWorld() {
     // Field dimensions and screen offsets
     const offsetX = app.renderer.width / 2;
     const offsetY = app.renderer.height / 2;
+
 
     renderFieldLines(offsetX, offsetY);
     renderWalls(offsetX, offsetY);
@@ -755,44 +823,64 @@ function renderWorld() {
 function renderFieldLines(offsetX, offsetY) {
     let g = new PIXI.Graphics();
     const lineWidth = 5;
-    g.lineStyle(lineWidth, 0x000000);
 
     // Center Line
+    g.setStrokeStyle({ width: lineWidth, color: 0x000000 });
+    g.beginPath();
     g.moveTo(offsetX, offsetY - (CONSTANTS.FIELD_HEIGHT / 2 * CONSTANTS.SCALE));
     g.lineTo(offsetX, offsetY + (CONSTANTS.FIELD_HEIGHT / 2 * CONSTANTS.SCALE));
+    g.closePath();
+    g.stroke();
 
-    // Goal Area Lines
+    // Goal Area Lines (Right Goal)
     let rightGoal = [
-        Vec2(CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2),
-        Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2),
-        Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2),
-        Vec2(CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2)
+        { x: CONSTANTS.FIELD_WIDTH / 2, y: -CONSTANTS.GOAL_SIZE / 2 },
+        { x: CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, y: -CONSTANTS.GOAL_SIZE / 2 },
+        { x: CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, y: CONSTANTS.GOAL_SIZE / 2 },
+        { x: CONSTANTS.FIELD_WIDTH / 2, y: CONSTANTS.GOAL_SIZE / 2 }
     ];
 
+    // Left Goal
     let leftGoal = [
-        Vec2(-CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2),
-        Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2),
-        Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2),
-        Vec2(-CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2)
+        { x: -CONSTANTS.FIELD_WIDTH / 2, y: CONSTANTS.GOAL_SIZE / 2 },
+        { x: -CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, y: CONSTANTS.GOAL_SIZE / 2 },
+        { x: -CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, y: -CONSTANTS.GOAL_SIZE / 2 },
+        { x: -CONSTANTS.FIELD_WIDTH / 2, y: -CONSTANTS.GOAL_SIZE / 2 }
     ];
 
-    // Right goal line
+
+    // Draw right goal line
+    g.setStrokeStyle({ width: lineWidth, color: 0x000000 });
+    g.beginPath();
     g.moveTo(offsetX + rightGoal[0].x * CONSTANTS.SCALE, offsetY + rightGoal[0].y * CONSTANTS.SCALE);
     g.lineTo(offsetX + rightGoal[3].x * CONSTANTS.SCALE, offsetY + rightGoal[3].y * CONSTANTS.SCALE);
+    g.closePath();
+    g.stroke();
 
-    // Left goal line
+    // Draw left goal line
+    g.setStrokeStyle({ width: lineWidth, color: 0x000000 });
+    g.beginPath();
     g.moveTo(offsetX + leftGoal[0].x * CONSTANTS.SCALE, offsetY + leftGoal[0].y * CONSTANTS.SCALE);
     g.lineTo(offsetX + leftGoal[3].x * CONSTANTS.SCALE, offsetY + leftGoal[3].y * CONSTANTS.SCALE);
+    g.closePath();
+    g.stroke();
 
-    // Center Circle (stroke only)
-    g.lineStyle(lineWidth, 0x000000);
+
+    // Draw the center circle
+    g.setStrokeStyle({ width: lineWidth, color: 0x000000 });
+
+    g.beginPath();
     g.drawCircle(offsetX, offsetY, 7.5 * CONSTANTS.SCALE);
+    g.closePath();
+    g.stroke();
 
-    // Center Dot (filled)
-    g.beginFill(0x000000);
+    g.setFillStyle({ color: 0x000000 });
+    g.beginPath();
     g.drawCircle(offsetX, offsetY, CONSTANTS.BALL_RADIUS * CONSTANTS.SCALE);
-    g.endFill();
+    g.closePath();
+    g.fill();
 
+    // Add the graphics to the world container
     worldContainer.addChild(g);
 }
 
@@ -801,11 +889,18 @@ function renderWalls(offsetX, offsetY) {
     let g = new PIXI.Graphics();
     const lineWidth = 20;
     const offsetAmount = (-lineWidth / 2) / (CONSTANTS.SCALE);
-    g.lineStyle(lineWidth, 0x004404);
-    g.lineJoin = "round";
-    g.lineCap = "round";
+
+    g.setStrokeStyle({
+        width: lineWidth,
+        color: 0x004404,
+        // join: "round",
+    });
+
+
+    g.beginPath();
 
     let offsetVertices = [];
+
     for (let i = 0; i < wallVertices.length; i++) {
         const curr = wallVertices[i];
         const next = wallVertices[(i + 1) % wallVertices.length];
@@ -831,15 +926,23 @@ function renderWalls(offsetX, offsetY) {
     // Close the path
     g.lineTo(offsetX + offsetVertices[0].x * CONSTANTS.SCALE, offsetY + offsetVertices[0].y * CONSTANTS.SCALE);
 
+    // End the fill to flush drawing
+
+    g.closePath();
+    g.stroke();
+
     worldContainer.addChild(g);
 }
 
+
 function renderObjects(offsetX, offsetY) {
     for (let id in objects) {
+        // console.log('rendering', id);
         const object = objects[id];
 
         // Create a container per object to apply translation & rotation
         let objContainer = new PIXI.Container();
+
         objContainer.x = object.position.x * CONSTANTS.SCALE + offsetX;
         objContainer.y = object.position.y * CONSTANTS.SCALE + offsetY;
         objContainer.rotation = object.angle || 0;
@@ -875,6 +978,7 @@ function renderBooster(car, container) {
 
 function renderCircle(object, container) {
     if (object.sprite) {
+        // console.log("drawwing", object.sprite);
         drawSprite(object, object.radius * 2 * CONSTANTS.SCALE, object.radius * 2 * CONSTANTS.SCALE, container);
     } else {
         let g = new PIXI.Graphics();
@@ -901,11 +1005,15 @@ function renderRectangle(object, container) {
         container.addChild(g);
     }
 }
-
 function drawSprite(object, width, height, container) {
     if (!spriteCache[object.sprite]) {
-        spriteCache[object.sprite] = PIXI.Texture.from(`assets/${object.sprite}.png`);
+        spriteCache[object.sprite] = PIXI.Assets.get(object.sprite);
     }
+
+    if (!spriteCache[object.sprite]) {
+        return console.error(`Texture for ${object.sprite} not found!`);
+    }
+
     let sprite = new PIXI.Sprite(spriteCache[object.sprite]);
     sprite.anchor.set(0.5);
     sprite.width = width;
@@ -913,30 +1021,33 @@ function drawSprite(object, width, height, container) {
     container.addChild(sprite);
 }
 
-function step(deltaTime) {
-    // Apply the camera transformation to the world container
-    camera.applyTransform(worldContainer);
 
+function step(deltaTime) {
+    // camera.applyTransform();
     renderWorld();
 
-    // (Optional) Identify our car (used by the camera in Renderer.animate)
-    let ourCar;
     for (let id in objects) {
-        const obj = objects[id];
-        if (obj.socketId == ourId) {
-            ourCar = obj;
+        let object = objects[id];
+        if (object.socketId == ourId) {
+            camera.setPosition(object.position);
+            camera.setAngle(-object.angle);
         }
     }
+
+    camera.applyTransform();
+    camera.render();
 }
 
-//
-// The Renderer class
-//
+
+
 class Renderer {
     constructor() {
         this.currentServerState = {};
         this.previousServerState = {};
+        // Timestamps for server updates:
         this.lastServerUpdateTime = 0;
+        this.previousServerUpdateTime = 0;
+        // Default update interval (ms)
         this.updateInterval = 1000 / 60;
         this.lastFrameTime = performance.now();
         this.FPS = 0;
@@ -944,20 +1055,25 @@ class Renderer {
         this.lastServerFPSUpdate = 0;
 
         // Create an FPS text overlay
-        this.fpsText = new PIXI.Text('FPS: 0', {
+        this.fpsText = new PIXI.Text("FPS: 0", {
             fontFamily: 'Arial',
             fontSize: 20,
             fill: 0x000000
         });
+
         uiContainer.addChild(this.fpsText);
 
         this.animate = this.animate.bind(this);
         app.ticker.add(this.animate);
+
+        console.log("APP.TICKER STARTED");
     }
 
     receiveServerState(newServerState, serverTimestamp) {
+        // Save the current state as the previous state (shallow copy)
         this.previousServerState = { ...this.currentServerState };
 
+        // Update the current state with the new data
         for (let id in newServerState) {
             this.currentServerState[id] = {
                 ...newServerState[id],
@@ -969,17 +1085,23 @@ class Renderer {
         let networkLatency = clientTime - serverTimestamp;
         let adjustedServerTime = serverTimestamp + networkLatency / 2;
 
+        // If we already have a previous timestamp, update it:
         if (this.lastServerUpdateTime) {
-            let newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
+            this.previousServerUpdateTime = this.lastServerUpdateTime;
+            const newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
             this.updateInterval = this.smoothUpdateInterval(newUpdateInterval);
-
-            if (performance.now() - this.lastServerFPSUpdate >= 5000) {
-                console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
-                this.lastServerFPSUpdate = performance.now();
-            }
+        } else {
+            // For the very first update, initialize both timestamps to adjustedServerTime
+            this.previousServerUpdateTime = adjustedServerTime;
         }
 
+        // Set the new current update time
         this.lastServerUpdateTime = adjustedServerTime;
+
+        if (performance.now() - this.lastServerFPSUpdate >= 5000) {
+            console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
+            this.lastServerFPSUpdate = performance.now();
+        }
     }
 
     smoothUpdateInterval(newInterval) {
@@ -1006,13 +1128,18 @@ class Renderer {
     }
 
     animate(deltaTime) {
-        const frameTime = performance.now();
-        const dt = frameTime - this.lastFrameTime;
-        this.lastFrameTime = frameTime;
+        const now = performance.now();
+        const dt = now - this.lastFrameTime;
+        this.lastFrameTime = now;
 
-        const timeSinceUpdate = Date.now() - this.lastServerUpdateTime;
-        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1);
+        // Calculate the time interval between the last two server updates
+        const interval = this.lastServerUpdateTime - this.previousServerUpdateTime;
+        // Compute α based on time since the previous update
+        let alpha = interval > 0 ? (now - this.previousServerUpdateTime) / interval : 1;
+        // Clamp α between 0 and 1
+        alpha = Math.max(0, Math.min(alpha, 1));
 
+        // Interpolate each object's state
         for (let id in this.currentServerState) {
             if (!objects) continue;
             const object = objects[id];
@@ -1027,19 +1154,21 @@ class Renderer {
                     object.angle = currState.angle;
                 }
 
-                // Make the camera follow our car
-                if (object.socketId == ourId) {
-                    camera.setPosition(object.position);
-                    camera.setAngle(-object.angle);
-                }
+                // (Optional) Make the camera follow our car
+                // if (object.socketId == ourId) {
+                //     // camera logic...
+                //     camera.setPosition(object.position);
+                //     camera.setAngle(-object.angle);
+                //     camera.applyTransform();
+                // }
             }
         }
 
         step(dt);
 
-        if (performance.now() - this.lastFPSUpdate >= 1000) {
+        if (now - this.lastFPSUpdate >= 1000) {
             this.FPS = 1000 / dt;
-            this.lastFPSUpdate = performance.now();
+            this.lastFPSUpdate = now;
         }
 
         // Update FPS text (positioned in the top left of the UI layer)

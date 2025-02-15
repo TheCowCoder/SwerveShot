@@ -126,7 +126,7 @@ bigger map
 
 
 angular camera lock mode
-- fix jump in rotation from e.deltaX changing
+- fix jump in rotation from e.deltaX changing []
 - tweak settings
 - implement perspective shift to make easier to see and see more of map
 
@@ -137,6 +137,8 @@ make cars weigh more
 
 consider making flip push ball same amount as in rl
 and move player same amount
+
+increase flip recharge
 
 goal speed indicator
 
@@ -149,3 +151,20 @@ switch to pixi
 - fix camera
 - add renderer back
 - try unadjustedMovement = true
+
+
+
+fix wall shift to be exact matching physics wall
+
+
+Fix crazy interpolation glitch
+fix perspective mesh
+
+fix resizing window with mesh and container
+fix antialias and squiggly lines in perspective mesh
+
+
+Perspective tilt idea:
+- move top left and top right in and down
+- make the renderTexture bigger width and height based on in and down amounts
+- anchor renderTexture bottom center to screen bottom center

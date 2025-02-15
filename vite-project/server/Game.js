@@ -1,5 +1,4 @@
 import Renderer from "./Renderer.js";
-import * as Const from "../shared/CONSTANTS.js";
 import planck from "planck-js";
 import { Vec2 } from "../shared/Vec2.js";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
@@ -451,9 +450,8 @@ export default class Game {
                     if ((bodyA === player.car.body && bodyB === otherPlayer.car.body) ||
                         (bodyB === player.car.body && bodyA === otherPlayer.car.body)) {
 
-                        contact.setRestitution(0);
-                        player.prevVelocity = player.car.body.getLinearVelocity().clone();
-                        otherPlayer.prevVelocity = otherPlayer.car.body.getLinearVelocity().clone();
+                        player.prevAngle = player.car.body.getAngle();
+                        otherPlayer.prevAngle = otherPlayer.car.body.getAngle();
                     }
                 }
             }
@@ -461,6 +459,13 @@ export default class Game {
     }
 
 
+    onEndContact(contact) {
+        const fixtureA = contact.getFixtureA();
+        const fixtureB = contact.getFixtureB();
+        const bodyA = fixtureA.getBody();
+        const bodyB = fixtureB.getBody();
+
+    }
     onPreSolve(contact) {
         const fixtureA = contact.getFixtureA();
         const fixtureB = contact.getFixtureB();
@@ -477,170 +482,108 @@ export default class Game {
                         (bodyB === player.car.body && bodyA === otherPlayer.car.body)) {
 
                         contact.setRestitution(0);
-                        contact.setFriction(10);
+                        contact.setFriction(0);
 
-                        let velocityA = player.car.body.getLinearVelocity();
-                        let velocityB = otherPlayer.car.body.getLinearVelocity();
+                        // let velocityA = player.car.body.getLinearVelocity();
+                        // let velocityB = otherPlayer.car.body.getLinearVelocity();
+                        // let relativeVelocity = velocityA.clone().sub(velocityB);
+                        // let inverseForce = relativeVelocity.clone().mul(-0.5);
 
-                        let relativeVelocity = velocityA.clone().sub(velocityB);
+                        // player.car.body.applyLinearImpulse(inverseForce, player.car.body.getWorldCenter());
+                        // otherPlayer.car.body.applyLinearImpulse(inverseForce.mul(-1), otherPlayer.car.body.getWorldCenter());
 
-                        let inverseForce = relativeVelocity.clone().mul(-0.5); // Apply half the inverse force to balance
+                        // // **Rotation Correction**
+                        // let angleDiffA = player.car.body.getAngle() - player.prevAngle;
+                        // let angleDiffB = otherPlayer.car.body.getAngle() - otherPlayer.prevAngle;
 
-                        player.car.body.applyLinearImpulse(inverseForce, player.car.body.getWorldCenter());
-                        otherPlayer.car.body.applyLinearImpulse(inverseForce.mul(-1), otherPlayer.car.body.getWorldCenter());
+                        // let correctionTorqueA = -angleDiffA * 10; // Adjust factor to fine-tune correction
+                        // let correctionTorqueB = -angleDiffB * 10;
+
+                        // player.car.body.applyTorque(correctionTorqueA);
+                        // otherPlayer.car.body.applyTorque(correctionTorqueB);
                     }
                 }
             }
         }
-    }
-
-    // onPreSolve(contact) {
-    //     const fixtureA = contact.getFixtureA();
-    //     const fixtureB = contact.getFixtureB();
-    //     const bodyA = fixtureA.getBody();
-    //     const bodyB = fixtureB.getBody();
-
-    //     let playerA = null;
-    //     let playerB = null;
-
-    //     // Identify players in the collision
-    //     for (let id in this.players) {
-    //         let player = this.players[id];
-    //         if (bodyA === player.car.body) playerA = player;
-    //         if (bodyB === player.car.body) playerB = player;
-    //     }
-
-    //     if (playerA && playerB) {
-    //         // Prevent pushing
-    //         contact.setRestitution(0);
-    //         contact.setFriction(10); // High friction to reduce sliding
-    //     }
-    // }
-
-    // onPreSolve(contact) {
-    //     const fixtureA = contact.getFixtureA();
-    //     const fixtureB = contact.getFixtureB();
-    //     const bodyA = fixtureA.getBody();
-    //     const bodyB = fixtureB.getBody();
-
-    //     if (this.pinchActive) {
-    //         // console.log("Pinch duration...");
-    //         contact.setFriction(0);
-    //     } else {
-    //         let ballInContact = (bodyA === this.ball.body || bodyB === this.ball.body);
-    //         let wallsInContact = (bodyA === this.walls || bodyB === this.walls);
-
-    //         let playerInContact = false;
-    //         for (let id in this.players) {
-    //             let player = this.players[id];
-    //             if (bodyA === player.car.body || bodyB === player.car.body) {
-    //                 playerInContact = true;
-    //             }
-    //         }
 
 
-    //         if (ballInContact && wallsInContact) {
-    //             this.recentBallContacts.push({
-    //                 collider: "walls",
-    //                 time: performance.now()
-    //             });
-    //         } else if (ballInContact && playerInContact) {
-    //             this.recentBallContacts.push({
-    //                 collider: "player",
-    //                 time: performance.now()
-    //             });
-    //         }
+        if (this.pinchActive) {
+            // console.log("Pinch duration...");
+            contact.setFriction(0);
+        } else {
+            let ballInContact = (bodyA === this.ball.body || bodyB === this.ball.body);
+            let wallsInContact = (bodyA === this.walls || bodyB === this.walls);
+
+            let playerInContact = false;
+            for (let id in this.players) {
+                let player = this.players[id];
+                if (bodyA === player.car.body || bodyB === player.car.body) {
+                    playerInContact = true;
+                }
+            }
 
 
-    //         if (this.recentBallContacts.length > 3) {
-    //             this.recentBallContacts.shift();
-    //         }
+            if (ballInContact && wallsInContact) {
+                this.recentBallContacts.push({
+                    collider: "walls",
+                    time: performance.now()
+                });
+            } else if (ballInContact && playerInContact) {
+                this.recentBallContacts.push({
+                    collider: "player",
+                    time: performance.now()
+                });
+            }
 
-    //         if (this.recentBallContacts.length == 3) {
-    //             let [first, second, third] = this.recentBallContacts;
-    //             if (
-    //                 first.collider == "player" && second.collider == "walls" && third.collider == "player" ||
-    //                 first.collider == "walls" && second.collider == "player" && third.collider == "walls"
-    //             ) {
-    //                 let firstTime = second.time - first.time;
-    //                 let secondTime = third.time - second.time;
 
-    //                 let pinchTime = (firstTime + secondTime) / 2;
-    //                 if (pinchTime < this.PINCH_TIME_THRESHOLD) {
-    //                     console.log("PINCH STARTED!");
-    //                     this.pinchActive = true;
-    //                     contact.setFriction(0);
+            if (this.recentBallContacts.length > 3) {
+                this.recentBallContacts.shift();
+            }
 
-    //                     setTimeout(() => {
-    //                         console.log("PINCH is over .")
-    //                         this.pinchActive = false;
-    //                     }, 100);
-    //                 }
-    //             }
-    //         }
-    //     }
+            if (this.recentBallContacts.length == 3) {
+                let [first, second, third] = this.recentBallContacts;
+                if (
+                    first.collider == "player" && second.collider == "walls" && third.collider == "player" ||
+                    first.collider == "walls" && second.collider == "player" && third.collider == "walls"
+                ) {
+                    let firstTime = second.time - first.time;
+                    let secondTime = third.time - second.time;
 
-    //     for (let id in this.players) {
-    //         let player = this.players[id];
+                    let pinchTime = (firstTime + secondTime) / 2;
+                    if (pinchTime < this.PINCH_TIME_THRESHOLD) {
+                        console.log("PINCH STARTED!");
+                        this.pinchActive = true;
+                        contact.setFriction(0);
+                        this.recentBallContacts = [];
 
-    //         for (let otherId in this.players) {
-    //             if (id !== otherId) {
-    //                 let otherPlayer = this.players[otherId];
+                        setTimeout(() => {
+                            console.log("PINCH is over .")
+                            this.pinchActive = false;
+                        }, 250);
+                    }
+                }
+            }
+        }
 
-    //                 if ((bodyA === player.car.body && bodyB === otherPlayer.car.body) ||
-    //                     (bodyB === player.car.body && bodyA === otherPlayer.car.body)) {
 
-    //                     // Prevent pushing
-    //                     contact.setRestitution(0);
-    //                     contact.setFriction(10); // High friction to reduce movement
-
-    //                     let carA = player.car;
-    //                     let carB = otherPlayer.car;
-
-    //                     let velocityA = carA.body.getLinearVelocity().length();
-    //                     let velocityB = carB.body.getLinearVelocity().length();
-
-    //                     let hitCar = null;
-    //                     let hitPlayer = null;
-    //                     let hittingPlayer = null;
-    //                     let movingCar = null;
-
-    //                     if (velocityA > velocityB) {
-    //                         movingCar = carA;
-    //                         hitCar = carB;
-    //                         hitPlayer = otherPlayer;
-    //                         hittingPlayer = player;
-    //                     } else {
-    //                         movingCar = carB;
-    //                         hitCar = carA;
-    //                         hitPlayer = player;
-    //                         hittingPlayer = otherPlayer;
-    //                     }
-
-    //                     // If there's a hit player, restore their previous velocity
-    //                     if (hitPlayer && hitPlayer.prevVelocity) {
-    //                         hitCar.body.setLinearVelocity(hitPlayer.prevVelocity);
-    //                         hitCar.body.setAngularVelocity(0);
-
-    //                         movingCar.body.setLinearVelocity(hittingPlayer.prevVelocity);
-    //                         movingCar.body.setAngularVelocity(0);
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    // }
-
-    onEndContact(contact) {
-        const fixtureA = contact.getFixtureA();
-        const fixtureB = contact.getFixtureB();
-        const bodyA = fixtureA.getBody();
-        const bodyB = fixtureB.getBody();
-
+        for (let id in this.players) {
+            let player = this.players[id];
+            if ((bodyA === player.car.body && bodyB === this.walls) || (bodyB === player.car.body && bodyA === this.walls)) {
+                contact.setRestitution(0);
+            }
+            for (let otherId in this.players) {
+                if (id !== otherId) {
+                    let otherPlayer = this.players[otherId];
+                    if ((bodyA === player.car.body && bodyB === otherPlayer.car.body) || (bodyB === player.car.body && bodyA === otherPlayer.car.body)) {
+                        contact.setRestitution(0);
+                        player.prevVelocity = player.car.body.getLinearVelocity().clone();
+                        otherPlayer.prevVelocity = otherPlayer.car.body.getLinearVelocity().clone();
+                    }
+                }
+            }
+        }
 
     }
-
 
 
     onPostSolve(contact, impulse) {
@@ -652,176 +595,208 @@ export default class Game {
         let playerA = null;
         let playerB = null;
 
-
-
-        // Identify players in the collision
+        // Identify players involved in the collision.
         for (let id in this.players) {
             let player = this.players[id];
             if (bodyA === player.car.body) playerA = player;
             if (bodyB === player.car.body) playerB = player;
         }
 
-        if (playerA && playerB) {
-            let normalImpulseSum = impulse.normalImpulses.reduce((sum, val) => sum + val, 0);
-            let tangentImpulseSum = impulse.tangentImpulses.reduce((sum, val) => sum + val, 0);
-        
-            let multiplier = 10; // Adjust this value as needed
-        
-            let impulseVector = Vec2(normalImpulseSum * multiplier, tangentImpulseSum * multiplier);
-            console.log("OPP IMPULSE", impulseVector);
-        
-            // Apply inverse impulse to cancel pushing effect
-            playerA.car.body.applyLinearImpulse(impulseVector.mul(-1), playerA.car.body.getWorldCenter());
-            playerB.car.body.applyLinearImpulse(impulseVector, playerB.car.body.getWorldCenter());
+        // if (playerA && playerB) {
+        //     // By default we want to cancel the push impulse.
+        //     // pushFactor of 0 means “cancel fully” and 1 means “don’t cancel”.
+        //     let pushFactor = 1;
+
+        //     const manifold = contact.getWorldManifold();
+        //     const normal = Vec2(manifold.normal);
+
+        //     const velA = bodyA.getLinearVelocity();
+        //     const velB = bodyB.getLinearVelocity();
+
+        //     // Project each car’s velocity onto the collision normal.
+        //     const projA = normal.clone().mul(normal.dot(velA));
+        //     const projB = normal.clone().mul(normal.dot(velB));
+
+        //     const magA = projA.magnitude();
+        //     const magB = projB.magnitude();
+
+        //     // If they are nearly equal, nothing to do.
+        //     if (Math.abs(magA - magB) < 0.001) return;
+
+        //     // Figure out which car is “pushing” by comparing the projections.
+        //     // (In a rear-end collision the car behind will typically have a higher
+        //     // projection along the normal.)
+        //     // Also check the player’s desired input along the normal.
+        //     const inputA = normal.dot(playerA.desiredVelocity || Vec2(0, 0));
+        //     const inputB = normal.dot(playerB.desiredVelocity || Vec2(0, 0));
+
+        //     // If the car with the higher projected velocity is actually trying to push,
+        //     // then we do not want to cancel its impulse (set pushFactor = 1).
+        //     if (magA > magB && inputA > 0) {
+        //         pushFactor = 1;
+        //     } else if (magB > magA && inputB > 0) {
+        //         pushFactor = 1;
+        //     }
+
+        //     // Now cancel the impulse on the car that is doing the pushing (i.e. the one
+        //     // with the higher projection along the collision normal).
+        //     if (magA > magB) {
+        //         // If car A is pushing, then cancel its impulse by applying a corrective impulse.
+        //         // (If pushFactor is 1, then (1 - pushFactor) is 0 – no cancellation.)
+        //         const cancelImpulse = projA.clone().mul(1 - pushFactor);
+        //         bodyA.applyLinearImpulse(cancelImpulse.mul(-1), bodyA.getWorldCenter(), true);
+        //         bodyA.setA
+        //     } else {
+        //         // Otherwise, cancel the impulse on car B.
+        //         const cancelImpulse = projB.clone().mul(1 - pushFactor);
+        //         bodyB.applyLinearImpulse(cancelImpulse.mul(-1), bodyB.getWorldCenter(), true);
+        //     }
+        // }
+
+        let player = null;
+        let ballHit = false;
+
+
+        for (let id in this.players) {
+            const _player = this.players[id];
+
+            if (bodyA === _player.car.body) player = _player;
+            if (bodyB === _player.car.body) player = _player;
+
+            if ((bodyA === this.ball.body && player) || (bodyB === this.ball.body && player)) {
+                ballHit = true;
+            }
+
+            if (player && ballHit && player.settings.dribbleMagnet) {
+                const carPos = player.car.body.getPosition();
+                const ballPos = this.ball.body.getPosition();
+
+                const carForward = player.car.body.getWorldVector({ x: 0, y: -1 });
+
+                const carFrontEdge = {
+                    x: carPos.x + carForward.x * (this.CAR_HEIGHT / 2),
+                    y: carPos.y + carForward.y * (this.CAR_HEIGHT / 2),
+                };
+
+                const minFrontDist = (this.CAR_HEIGHT / 2) + (CONSTANTS.BALL_RADIUS / 2);
+
+                const ballToFront = {
+                    x: ballPos.x - carFrontEdge.x,
+                    y: ballPos.y - carFrontEdge.y,
+                };
+
+                const ballFrontDist = carForward.x * ballToFront.x + carForward.y * ballToFront.y;
+
+                if (ballFrontDist >= CONSTANTS.BALL_RADIUS / 2 - 0.1) {
+
+
+                    const normalImpulseSum = impulse.normalImpulses.reduce((sum, val) => sum + val, 0);
+
+                    const DRIBBLE_FORCE_THRESHOLD = 20;
+
+                    if (normalImpulseSum < DRIBBLE_FORCE_THRESHOLD) {
+                        const carRight = { x: -carForward.y, y: carForward.x };
+
+                        // const offset = (carRight.x * ballToFront.x + carRight.y * ballToFront.y);
+
+                        // const ballDest = Vec2(
+                        //     ballPos.x - carRight.x * offset,
+                        //     ballPos.y - carRight.y * offset
+                        // )
+                        // // ).add(carForward.mul(-0.1));
+
+                        // const DISTANCE_DAMPENING_SCALE = 0.75; // Adjust this to control the dampening effect
+
+                        // let ballDist = Vec2(ballPos).distance(ballDest);
+                        // const carSpeed = Vec2(player.car.body.getLinearVelocity()).magnitude();
+
+                        // const baseForce = 2;  // Base force multiplier
+                        // const minScale = 2;   // Minimum force scale (prevents weak force at low speed)
+                        // const speedBoost = 1;   // Boosts low-speed force calculation
+                        // const exponent = 0.25;  // Controls how force scales with speed
+
+                        // // Calculate a distance-based damping factor
+                        // let distanceDampingFactor = 1 / (1 + DISTANCE_DAMPENING_SCALE * ballDist);
+
+                        // // Adjust the force factor based on speed and distance
+                        // let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * distanceDampingFactor;
+
+
+                        // let force = {
+                        //     x: (ballDest.x - ballPos.x) * adjustedForceFactor,
+                        //     y: (ballDest.y - ballPos.y) * adjustedForceFactor
+                        // };
+
+
+
+                        // --- DRIBBLE FORCE SETTINGS ---
+                        const DRIBBLE_BASE_FORCE = 0.75;       // Base force always pushing the ball forward
+                        const DRIBBLE_START_FORCE = 1;      // Lateral force when ball contact is at front center
+                        const DRIBBLE_MAX_FORCE = 3;        // Maximum lateral force allowed
+                        let DRIBBLE_EXP_GROWTH_FACTOR = 1.85; // Exponential growth factor for lateral force
+
+                        // DRIBBLE_EXP_GROWTH_FACTOR *= player.car.body.getLinearVelocity().length() * 0.5;
+
+                        // --- Assume these vectors are already defined ---
+                        // carForward: unit vector pointing in the car’s forward direction
+                        // carRight: computed as { x: -carForward.y, y: carForward.x }
+                        // ballPos: current position of the ball
+                        // ballToFront: vector from the car’s front center to the ball’s contact point
+
+                        // Calculate the lateral offset from the front center along the car’s right direction.
+                        const offset = (carRight.x * ballToFront.x + carRight.y * ballToFront.y);
+
+                        // --- Lateral (side-correcting) force ---
+                        // We want the force to be low when the ball is near the center (offset ~ 0)
+                        // and to grow exponentially (up to a cap) as the ball’s contact point moves toward either end.
+                        const lateralForceMagnitude = Math.min(
+                            DRIBBLE_START_FORCE * Math.exp(DRIBBLE_EXP_GROWTH_FACTOR * Math.abs(offset)),
+                            DRIBBLE_MAX_FORCE
+                        );
+
+
+                        // The direction: if the ball is to the right (offset > 0), we push it left (i.e. -carRight),
+                        // and vice-versa if the ball is to the left.
+                        const lateralForce = {
+                            x: -carRight.x * Math.sign(offset) * lateralForceMagnitude,
+                            y: -carRight.y * Math.sign(offset) * lateralForceMagnitude
+                        };
+
+                        // --- Base forward force ---
+                        // This ensures the ball always gets a slight nudge in the car’s forward direction.
+                        const forwardForce = {
+                            x: carForward.x * DRIBBLE_BASE_FORCE,
+                            y: carForward.y * DRIBBLE_BASE_FORCE
+                        };
+
+                        // Combine both forces.
+                        const totalForce = {
+                            x: forwardForce.x + lateralForce.x,
+                            y: forwardForce.y + lateralForce.y
+                        };
+
+                        // Apply the force if not in "pinch" mode.
+                        if (!this.pinchActive) {
+                            this.ball.body.applyLinearImpulse(totalForce, this.ball.body.getWorldCenter());
+                        } else {
+                            console.log("PINCHING, not dribbling");
+                        }
+
+
+                        // if (!this.pinchActive) {
+                        //     this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
+                        // } else {
+                        //     console.log("PINCHING, not drubbling");
+                        // }
+
+                    }
+                }
+
+
+            }
         }
-        
+
     }
-
-    // onPostSolve(contact, impulse) {
-    //     const fixtureA = contact.getFixtureA();
-    //     const fixtureB = contact.getFixtureB();
-
-    //     const bodyA = fixtureA.getBody();
-    //     const bodyB = fixtureB.getBody();
-
-    //     let car = null;
-    //     let player = null;
-    //     let ballHit = false;
-
-    //     for (let id in this.players) {
-    //         const _player = this.players[id];
-
-    //         if (bodyA === _player.car.body) player = _player;
-    //         if (bodyB === _player.car.body) player = _player;
-
-    //         // if (bodyA === _player.car.body || bodyB === _player.car.body) {
-    //         //     let carA = _player.car;
-
-    //         //     // Check if the other body is a car
-    //         //     for (let otherId in this.players) {
-    //         //         if (otherId == id) continue;
-
-    //         //         const otherPlayer = this.players[otherId];
-
-    //         //         if (bodyA === otherPlayer.car.body || bodyB === otherPlayer.car.body) {
-    //         //             let carB = otherPlayer.car;
-    //         //             let hitCar = null;
-    //         //             let movingCar = null;
-    //         //             let hitPlayer;
-
-    //         //             for (let i = 0; i < impulse.normalImpulses.length; i++) {
-    //         //                 const impulseMagnitude = impulse.normalImpulses[i];
-
-    //         //                 if (impulseMagnitude > 0) {
-    //         //                     let velocityA = carA.body.getLinearVelocity().length();
-    //         //                     let velocityB = carB.body.getLinearVelocity().length();
-
-    //         //                     if (velocityA > velocityB) {
-    //         //                         movingCar = carA;
-    //         //                         hitCar = carB;
-    //         //                         hitPlayer = otherPlayer;
-    //         //                     } else {
-    //         //                         movingCar = carB;
-    //         //                         hitCar = carA;
-    //         //                         hitPlayer = player;
-    //         //                     }
-
-    //         //                     break;
-    //         //                 }
-    //         //             }
-
-    //         //             // if (hitCar) {
-    //         //             //     hitCar.body.setLinearVelocity(hitPlayer.prevVelocity);
-    //         //             //     hitCar.body.setAngularVelocity(0);
-    //         //             // }
-
-    //         //             if (hitCar) {
-    //         //                 let velocityThreshold = 0.1; // Prevent micro-adjustments when already still
-    //         //                 let prevVel = hitPlayer.prevVelocity;
-
-    //         //                 if (hitCar.body.getLinearVelocity().length() > velocityThreshold) {
-    //         //                     hitCar.body.setLinearVelocity(prevVel);
-    //         //                     hitCar.body.setAngularVelocity(0);
-    //         //                 }
-    //         //             }
-
-    //         //         }
-    //         //     }
-    //         // }
-
-    //         if ((bodyA === this.ball.body && player) || (bodyB === this.ball.body && player)) {
-    //             ballHit = true;
-    //         }
-
-    //         if (player && ballHit && player.settings.dribbleMagnet) {
-    //             const carPos = player.car.body.getPosition();
-    //             const ballPos = this.ball.body.getPosition();
-
-    //             const carForward = player.car.body.getWorldVector({ x: 0, y: -1 });
-
-    //             const carFrontEdge = {
-    //                 x: carPos.x + carForward.x * (this.CAR_HEIGHT / 2),
-    //                 y: carPos.y + carForward.y * (this.CAR_HEIGHT / 2),
-    //             };
-
-    //             const minFrontDist = (this.CAR_HEIGHT / 2) + (CONSTANTS.BALL_RADIUS / 2);
-
-    //             const ballToFront = {
-    //                 x: ballPos.x - carFrontEdge.x,
-    //                 y: ballPos.y - carFrontEdge.y,
-    //             };
-
-    //             const ballFrontDist = carForward.x * ballToFront.x + carForward.y * ballToFront.y;
-
-    //             if (ballFrontDist >= CONSTANTS.BALL_RADIUS / 2 - 0.1) {
-    //                 const normalImpulseSum = impulse.normalImpulses.reduce((sum, val) => sum + val, 0);
-
-    //                 const DRIBBLE_FORCE_THRESHOLD = 20;
-
-    //                 if (normalImpulseSum < DRIBBLE_FORCE_THRESHOLD) {
-    //                     const carRight = { x: -carForward.y, y: carForward.x };
-
-    //                     const offset = (carRight.x * ballToFront.x + carRight.y * ballToFront.y);
-
-    //                     const ballDest = Vec2(
-    //                         ballPos.x - carRight.x * offset,
-    //                         ballPos.y - carRight.y * offset
-    //                     )
-    //                     // ).add(carForward.mul(-0.1));
-
-    //                     const DISTANCE_DAMPENING_SCALE = 1; // Adjust this to control the dampening effect
-
-    //                     let ballDist = Vec2(ballPos).distance(ballDest);
-    //                     const carSpeed = Vec2(player.car.body.getLinearVelocity()).magnitude();
-
-    //                     const baseForce = 2;  // Base force multiplier
-    //                     const minScale = 2;   // Minimum force scale (prevents weak force at low speed)
-    //                     const speedBoost = 1;   // Boosts low-speed force calculation
-    //                     const exponent = 0.4;  // Controls how force scales with speed
-
-    //                     // Calculate a distance-based damping factor
-    //                     let distanceDampingFactor = 1 / (1 + DISTANCE_DAMPENING_SCALE * ballDist);
-
-    //                     // Adjust the force factor based on speed and distance
-    //                     let adjustedForceFactor = baseForce * (minScale + Math.pow(carSpeed + speedBoost, exponent) * 0.5) * distanceDampingFactor;
-
-    //                     const force = {
-    //                         x: (ballDest.x - ballPos.x) * adjustedForceFactor,
-    //                         y: (ballDest.y - ballPos.y) * adjustedForceFactor
-    //                     };
-    //                     if (!this.pinchActive) {
-    //                         this.ball.body.applyLinearImpulse(force, this.ball.body.getWorldCenter());
-    //                     } else {
-    //                         console.log("PINCHING, not drubbling");
-    //                     }
-    //                 }
-    //             }
-
-
-    //         }
-    //     }
-    // }
-
 
 
 
@@ -840,6 +815,7 @@ export default class Game {
 
     playerJoined(socket, bot) {
         // return;
+        console.log("PLAYER JOINED!", socket.id);
         if (!bot) {
             socket.join(this.id);
 
@@ -913,7 +889,8 @@ export default class Game {
                 mouseRange: 300,
                 sensitivity: 1.5,
                 username: "",
-                dribbleMagnet: true
+                dribbleMagnet: true,
+                relativeMovement: true
             }
         }
     }
@@ -1011,7 +988,7 @@ export default class Game {
 
 
 
-    step() {
+    step(frameTime) {
         this.world.step(1 / this.FPS, this.VELOCITY_ITER, this.POSITION_ITER);
 
         for (let id in this.players) {
@@ -1024,28 +1001,163 @@ export default class Game {
 
 
 
+            player.desiredVelocity = Vec2(0, 0);
+
+            // Store peak angular velocity over short window
+            if (!player.recentMaxAngularVelocity) {
+                player.recentMaxAngularVelocity = 0;
+            }
+
+            // Decay the peak velocity over time (prevents old spins from affecting new shots)
+            player.recentMaxAngularVelocity *= 0.9;
+
+            // Update if current angular velocity is higher
+            player.recentMaxAngularVelocity = Math.max(player.recentMaxAngularVelocity, Math.abs(player.car.body.getAngularVelocity()));
+
+
+
+            // Helper to normalize any angle to the [-π, π] range
+            function normalizeAngle(angle) {
+                return Math.atan2(Math.sin(angle), Math.cos(angle));
+            }
+
+            // Helper to linearly interpolate between two angles
+            function lerpAngle(a, b, t) {
+                // Compute the shortest difference
+                let diff = normalizeAngle(b - a);
+                return normalizeAngle(a + diff * t);
+            }
+
+            // Ensure that filteredTargetAngle is initialized once:
+            if (player.car.filteredTargetAngle === undefined) {
+                // Start with the car’s current angle.
+                player.car.filteredTargetAngle = player.car.body.getAngle();
+            }
+            // Ensure that filteredTargetAngle is initialized once:
+            if (player.car.filteredTargetAngle === undefined) {
+                // Start with the car’s current angle.
+                player.car.filteredTargetAngle = player.car.body.getAngle();
+            }
+
+            if (player.inputs.mousePos) {
+                const sensitivity = 0.005;
+                const canvasCenterX = player.canvasWidth / 2;
+                const rawTargetAngle = (player.inputs.mousePos.x - canvasCenterX) * sensitivity;
+            
+                // Smoothing variable: 0 means no smoothing, higher values mean more smoothing.
+                const smoothingFactor = 0;
+                // Ensure it's clamped between 0 and 1.
+                const clampedSmoothing = Math.min(Math.max(smoothingFactor, 0), 1);
+            
+                // Interpolate smoothingSpeed based on smoothingFactor:
+                // When smoothingFactor = 0, smoothingSpeed = Infinity (no smoothing, instant response).
+                // When smoothingFactor = 1, smoothingSpeed is the provided value for smooth motion.
+                const baseSmoothingSpeed = 1;
+                const smoothingSpeed = clampedSmoothing === 0 ? Infinity : baseSmoothingSpeed / clampedSmoothing;
+            
+                if (player.car.filteredTargetAngle === undefined) {
+                    player.car.filteredTargetAngle = player.car.body.getAngle();
+                }
+            
+                // Adjust target angle based on smoothing.
+                if (smoothingSpeed === Infinity) {
+                    player.car.filteredTargetAngle = rawTargetAngle;
+                } else {
+                    player.car.filteredTargetAngle += (rawTargetAngle - player.car.filteredTargetAngle) * smoothingSpeed * frameTime;
+                }
+            
+                const currentAngle = player.car.body.getAngle();
+                let angleDiff = player.car.filteredTargetAngle - currentAngle;
+                angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
+            
+                const deadzone = 0.001;
+                if (Math.abs(angleDiff) < deadzone) {
+                    player.car.body.setAngularVelocity(0);
+                } else {
+                    const turnPower = 25;
+                    player.car.body.setAngularVelocity(turnPower * angleDiff);
+                }
+            }
+            
+
+
+
+
+
+
+
+
+            // if (player.inputs.mousePos) {
+
+            //     // Sensitivity converts pixel movement into radians
+            //     let sensitivity = 0.0025;
+
+            //     // Get and normalize the current angle of the car
+            //     let carAngle = player.car.body.getAngle();
+            //     carAngle = Math.atan2(Math.sin(carAngle), Math.cos(carAngle));
+
+            //     let canvasCenterX = player.canvasWidth / 2;
+            //     let offsetX = player.inputs.mousePos.x - canvasCenterX;
+
+            //     // Calculate target angle from the mouse offset, then normalize it
+            //     let targetAngle = offsetX * sensitivity;
+            //     targetAngle = Math.atan2(Math.sin(targetAngle), Math.cos(targetAngle));
+
+            //     // Initialize smoothedAngle if it hasn't been set yet
+            //     if (player.smoothedAngle === undefined) {
+            //         player.smoothedAngle = carAngle;
+            //     }
+
+            //     // Compute the shortest angular difference between the target and the smoothed angle
+            //     let diffToTarget = Math.atan2(
+            //         Math.sin(targetAngle - player.smoothedAngle),
+            //         Math.cos(targetAngle - player.smoothedAngle)
+            //     );
+
+            //     // Smoothly interpolate towards the target angle
+            //     let smoothingFactor = 0.25;
+            //     player.smoothedAngle += diffToTarget * smoothingFactor;
+            //     // Normalize after updating
+            //     player.smoothedAngle = Math.atan2(
+            //         Math.sin(player.smoothedAngle),
+            //         Math.cos(player.smoothedAngle)
+            //     );
+
+            //     // Calculate the angular difference between the smoothed angle and the current car angle
+            //     let angleDiff = Math.atan2(
+            //         Math.sin(player.smoothedAngle - carAngle),
+            //         Math.cos(player.smoothedAngle - carAngle)
+            //     );
+
+            //     // Calculate and apply angular velocity
+            //     let turnPower = 20;
+            //     let angularVelocity = angleDiff * turnPower;
+            //     player.car.body.setAngularVelocity(angularVelocity);
+            // }
+
+
 
             // Handle turning
             if (player.inputs["mousePos"]) {
 
-                let carPos = player.car.body.getPosition().clone();
-                let mousePos = player.inputs["mousePos"].mul(1 / CONSTANTS.SCALE).add(carPos);
+                // let carPos = player.car.body.getPosition().clone();
+                // let mousePos = player.inputs["mousePos"].mul(1 / CONSTANTS.SCALE).add(carPos);
 
-                // this.io.to(this.id).emit("debug dot", mousePos);
+                // // this.io.to(this.id).emit("debug dot", mousePos);
 
-                // Compute the vector from the car to the mouse
-                let deltaX = mousePos.x - carPos.x;
-                let deltaY = mousePos.y - carPos.y;
+                // // Compute the vector from the car to the mouse
+                // let deltaX = mousePos.x - carPos.x;
+                // let deltaY = mousePos.y - carPos.y;
 
-                // Get the angle to the mouse position
-                let mouseAngle = Math.atan2(deltaY, deltaX);
+                // // Get the angle to the mouse position
+                // let mouseAngle = Math.atan2(deltaY, deltaX);
 
-                // Normalize the angle difference
-                let angleDiff = mouseAngle - carAngle;
-                angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)); // Ensures range [-π, π]
+                // // Normalize the angle difference
+                // let angleDiff = mouseAngle - carAngle;
+                // angleDiff = Math.atan2(Math.sin(angleDiff), Math.cos(angleDiff)); // Ensures range [-π, π]
 
-                let turnPower = 10;
-                player.car.body.setAngularVelocity(angleDiff * turnPower);
+                // let turnPower = 10;
+                // player.car.body.setAngularVelocity(angleDiff * turnPower);
 
 
             } else {
@@ -1116,21 +1228,38 @@ export default class Game {
             }
 
             // Apply normal drive force
+            let upForce;
+            let downForce;
+            let leftForce;
+            let rightForce;
+            if (player.settings.relativeMovement) {
+                upForce = player.car.body.getWorldVector(Vec2(0, -1));
+                downForce = player.car.body.getWorldVector(Vec2(0, 1));
+                leftForce = player.car.body.getWorldVector(Vec2(-1, 0));
+                rightForce = player.car.body.getWorldVector(Vec2(1, 0));
+            } else {
+                upForce = Vec2(0, -1);
+                downForce = Vec2(0, 1);
+                leftForce = Vec2(-1, 0);
+                rightForce = Vec2(1, 0);
+            }
 
+            // Normal drive force (if not boosting)
             if (!player.car.boosting && (player.inputs["ArrowUp"] || player.inputs["w"]) && !(player.inputs["ArrowDown"] || player.inputs["s"])) {
-                player.car.body.applyLinearImpulse(player.car.body.getWorldVector(Vec2(0, -1)).mul(this.DRIVE_FORCE), player.car.body.getWorldCenter(), true);
-
+                player.desiredVelocity = player.desiredVelocity.add(upForce.mul(this.DRIVE_FORCE));
             } else if ((player.inputs["ArrowDown"] || player.inputs["s"]) && !(player.inputs["ArrowUp"] || player.inputs["w"])) {
-                player.car.body.applyLinearImpulse(player.car.body.getWorldVector(Vec2(0, 1)).mul(this.DRIVE_FORCE), player.car.body.getWorldCenter(), true);
-
+                player.desiredVelocity = player.desiredVelocity.add(downForce.mul(this.DRIVE_FORCE));
             }
 
-            // Allow lateral movement even when boosting
+            // Lateral movement
             if (player.inputs["a"] && !player.inputs["d"]) {
-                player.car.body.applyLinearImpulse(player.car.body.getWorldVector(Vec2(-1, 0)).mul(this.LATERAL_FORCE), player.car.body.getWorldCenter(), true);
+                player.desiredVelocity = player.desiredVelocity.add(leftForce.mul(this.LATERAL_FORCE));
             } else if (player.inputs["d"] && !player.inputs["a"]) {
-                player.car.body.applyLinearImpulse(player.car.body.getWorldVector(Vec2(1, 0)).mul(this.LATERAL_FORCE), player.car.body.getWorldCenter(), true);
+                player.desiredVelocity = player.desiredVelocity.add(rightForce.mul(this.LATERAL_FORCE));
             }
+
+            // Apply impulse to move the car
+            player.car.body.applyLinearImpulse(player.desiredVelocity, player.car.body.getWorldCenter(), true);
 
 
         }
@@ -1256,23 +1385,31 @@ export default class Game {
     mouseMove(id, dx, dy, w, h) {
         if (this.preset == "default" || this.preset == "mouseControls" || this.preset == "noBoostFlip" || id in this.botManager.bots) {
             const player = this.players[id];
-            if (!player.inputs["mousePos"]) player.inputs["mousePos"] = Vec2(0, 0);
 
-            let sens = player.settings.sensitivity;
-            let mousePos = player.inputs["mousePos"].add(Vec2(dx * sens, dy * sens));
+            if (!player.inputs.mousePos) player.inputs.mousePos = Vec2(0, 0);
 
-            let mouseDir = Vec2(mousePos).normalize();
-            let mouseRange = player.settings.mouseRange;
-            if (mousePos.magnitude() > mouseRange) {
-                mousePos = mouseDir.mul(mouseRange);
-            }
 
-            this.io.to(id).emit("mouse pos", mousePos);
 
-            this.players[id].inputs["mousePos"] = mousePos;
-            this.players[id].canvasWidth = w;
-            this.players[id].canvasHeight = h;
+            player.inputs.mousePos.add(Vec2(dx, dy));
+
+            // let sens = player.settings.sensitivity;
+            // let mousePos = player.inputs["mousePos"].add(Vec2(dx * sens, dy * sens));
+
+            // let mouseDir = Vec2(mousePos).normalize();
+            // let mouseRange = player.settings.mouseRange;
+            // if (mousePos.magnitude() > mouseRange) {
+            //     mousePos = mouseDir.mul(mouseRange);
+            // }
+
+            // this.io.to(id).emit("mouse pos", mousePos);
+
+            // this.players[id].inputs["mousePos"] = mousePos;
+            // this.players[id].canvasWidth = w;
+            // this.players[id].canvasHeight = h;
         }
+
+        this.players[id].canvasWidth = w;
+        this.players[id].canvasHeight = h;
     }
 
     mouseDown(id, button) {

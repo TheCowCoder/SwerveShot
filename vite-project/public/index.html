@@ -17,9 +17,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 
+    <link rel="stylesheet" href="../src/index.css">
 </head>
 
 <body>
+    <input type="range" id="tiltSlider" min="0" max="100" value="50">
     <div id="menu">
         <span id="title">SwerveShot</span>
         <div id="buttons">
@@ -220,9 +222,8 @@
     <!-- <script src="/socket.io/socket.io.js"></script>
     <script src="pixi.js"></script> -->
 
-    <!-- <script src="Camera.js" type="module"></script>
-    <script src="client.js" type="module" defer></script> -->
-    <script src="bundle.js"></script>
+    <!-- <script src="../src/Camera.js" type="module"></script> -->
+    <script type="module" src="../src/client.js"> </script>
 </body>
 
 </html>
