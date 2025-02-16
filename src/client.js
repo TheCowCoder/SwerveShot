@@ -1,62 +1,168 @@
+
 import Camera from './Camera.js';
-const canvas = document.getElementById('gameCanvas');
-const gl = canvas.getContext('webgl');
-
-
-const CONSTANTS = window.CONSTANTS;
-const Vec2 = window.Vec2;
-
-// Set canvas size to match the screen
-
-function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    gl.viewport(0, 0, canvas.width, canvas.height);
-}
-window.addEventListener("resize", resize);
-resize();
-
-
-// Lock and hide the cursor on click
-canvas.addEventListener('click', () => {
-    canvas.requestPointerLock();
-});
-
-let exittingPointerLock = false;
-document.addEventListener('pointerlockchange', () => {
-    if (document.pointerLockElement === canvas) {
-        console.log('Pointer lock enabled on canvas');
-    } else {
-        console.log('Pointer lock exited');
-        exittingPointerLock = true;
-        mousePos = null;
-        socket.emit("exit pointer lock", () => {
-            exittingPointerLock = false;
-        });
+import { io } from "socket.io-client";
+import * as PIXI from 'pixi.js';
+if (!PIXI.Container.prototype.updateLocalTransform) {
+    console.log("Patched pixi updateLocalTransform!");
+    PIXI.Container.prototype.updateLocalTransform = function () {
+        return this.transform.updateLocalTransform();
     }
-});
+}
+
+
+import "./index.css";
+import * as CONSTANTS from "../shared/CONSTANTS.js";
+import { Vec2 } from "../shared/Vec2.js";
 
 
 
 
-
-const camera = new Camera(CONSTANTS.SCALE, canvas);
-
-
-
+// Global variables
+let debugDot;
+let exittingPointerLock = false;
 let objects = {};
 let wallVertices;
 
 
+let camera;
+let app;
+let uiContainer;
+let worldContainer;
+
+const spriteCache = {};
+
+
+
+async function loadAssets() {
+    try {
+        // Load all assets as an array
+        const assets = await PIXI.Assets.load([
+            "/assets/ball.png",
+            "/assets/botOne.png",
+            "/assets/botTwo.png",
+            "/assets/carBlue.png",
+            "/assets/carRed.png"
+        ]);
+
+        console.log("Assets loaded successfully!");
+
+        // Manually assign textures to a spriteCache with custom keys
+        spriteCache["ball"] = PIXI.Assets.get("/assets/ball.png");
+        spriteCache["botOne"] = PIXI.Assets.get("/assets/botOne.png");
+        spriteCache["botTwo"] = PIXI.Assets.get("/assets/botTwo.png");
+        spriteCache["carBlue"] = PIXI.Assets.get("/assets/carBlue.png");
+        spriteCache["carRed"] = PIXI.Assets.get("/assets/carRed.png");
+
+    } catch (error) {
+        console.error("Error loading assets:", error);
+    }
+}
+
+
+
+async function setupPixi() {
+
+    const gameCanvas = document.getElementById('gameCanvas');
+    if (!(gameCanvas instanceof HTMLCanvasElement)) {
+        return console.error("The #gameCanvas element is not a canvas!");
+    }
+
+
+
+
+    app = new PIXI.Application();
+
+    await app.init({
+        view: gameCanvas,
+        resizeTo: window,
+        backgroundColor: 0x3a9f58,
+        antialias: true,
+    });
+
+    // resolution: window.devicePixelRatio || 1, // Resolution for retina displays
+
+
+    await loadAssets();
+
+
+    const canvas = app.view; // for pointer lock etc.
+
+
+    // Lock and hide the cursor on click
+    canvas.addEventListener('click', () => {
+        canvas.requestPointerLock();
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+        if (document.pointerLockElement === canvas) {
+            console.log('Pointer lock enabled on canvas');
+        } else {
+            console.log('Pointer lock exited');
+            exittingPointerLock = true;
+            mousePos = null;
+            socket.emit("exit pointer lock", () => {
+                exittingPointerLock = false;
+            });
+        }
+    });
+
+    // Create the camera instance (ensure your Camera class works with PIXI containers)
+    camera = new Camera(CONSTANTS.SCALE, app);
+
+
+
+    // Create a container for all world objects so that the camera transform can be applied
+    worldContainer = new PIXI.Container();
+    camera.container.addChild(worldContainer);
+
+
+
+    // Create a separate container for UI overlays (like FPS text) that should not be transformed by the camera
+    uiContainer = new PIXI.Container();
+    camera.container.addChild(uiContainer);
+
+    app.view.addEventListener('mousemove', (event) => {
+        if (document.pointerLockElement === app.view && !exittingPointerLock) {
+            socket.emit("mousemove", event.movementX, event.movementY, app.view.width, app.view.height);
+        }
+    });
+
+    app.view.addEventListener("mousedown", (e) => {
+        socket.emit("mousedown", e.button);
+    });
+
+    app.view.addEventListener("mouseup", (e) => {
+        socket.emit("mouseup", e.button);
+    });
+
+    app.view.addEventListener("wheel", (e) => {
+        camera.setScale(camera.scale + e.deltaY * 0.00025);
+        customScale = true;
+        scaleBtn.style.display = null;
+        e.preventDefault();
+    });
+
+
+}
+
+
+window.onload = () => {
+    setupPixi();
+};
 
 // #region Socket events
 
+console.log("Attempting socket connection");
 let socket = io({ reconnection: false });
+// const socket = io("http://localhost:3000", { reconnection: false });
+
+
+
 let ourId;
 let mousePos;
 let settings;
 
-let debugDot;
+
 
 socket.on("debug dot", (pos) => {
     pos = Vec2(pos.x * CONSTANTS.SCALE + canvas.width / 2, pos.y * CONSTANTS.SCALE + canvas.height / 2);
@@ -241,41 +347,28 @@ document.getElementById("game").style.display = "none";
 
 let leftLateralIndicator;
 let rightLateralIndicator;
-
-document.addEventListener('keydown', (e) => {
+window.addEventListener('keydown', (e) => {
     if (!e.repeat) socket.emit("keydown", e.key);
     if (e.key === "Escape") {
         customScale = false;
         scaleBtn.style.display = "none";
         camera.setScale(1);
-    } else if (e.key == "a") {
+    } else if (e.key === "a") {
         leftLateralIndicator = true;
-    } else if (e.key == "d") {
+    } else if (e.key === "d") {
         rightLateralIndicator = true;
     }
 });
 
-document.addEventListener('keyup', (e) => {
+window.addEventListener('keyup', (e) => {
     if (!e.repeat) socket.emit("keyup", e.key);
-    if (e.key == "a") {
+    if (e.key === "a") {
         leftLateralIndicator = false;
-    } else if (e.key == "d") {
+    } else if (e.key === "d") {
         rightLateralIndicator = false;
     }
 });
 
-document.addEventListener('mousemove', (event) => {
-    if (document.pointerLockElement === canvas && !exittingPointerLock) {
-        socket.emit("mousemove", event.movementX, event.movementY, canvas.width, canvas.height);
-    }
-});
-
-document.addEventListener("mousedown", e => {
-    socket.emit("mousedown", e.button);
-});
-document.addEventListener("mouseup", e => {
-    socket.emit("mouseup", e.button);
-});
 
 let customScale;
 
@@ -289,6 +382,18 @@ document.addEventListener("wheel", (e) => {
 
 // #region UI Control
 
+
+function degToRad(degrees) {
+    return degrees * (Math.PI / 180);
+}
+
+let tiltSlider = document.getElementById("tiltSlider");
+
+tiltSlider.addEventListener("input", (e) => {
+    console.log(tiltSlider.value);
+    camera.setPerspective(degToRad(-tiltSlider.value));
+    console.log(camera.position);
+});
 
 
 let settingsBtn = document.getElementById("settingsBtn");
@@ -525,8 +630,6 @@ botsBtn.addEventListener("click", () => {
                 socket.emit("bot skill", skillLevel);
             }
 
-            inGame();
-
             socket.emit("settings", {
                 username: usernameInp.value
             });
@@ -595,8 +698,6 @@ privateBtn.addEventListener("click", () => {
         restoreButtons(originalButtons);
 
 
-
-        inGame();
     });
 
     document.getElementById("joinRoomBtn").addEventListener("click", () => {
@@ -658,7 +759,7 @@ let renderer;
 
 
 function inGame() {
-
+    // console.log("IN GAME");
     renderer = new Renderer();
 
     document.getElementById("menu").style.display = "none";
@@ -668,7 +769,9 @@ function inGame() {
     searching.style.display = "none";
 }
 function restoreButtons(originalHTML) {
+    console.log("RESTORE BUTTONS", buttonContainer, originalHTML);
     buttonContainer.innerHTML = originalHTML;
+    // console.log(document.getElementById("privateBtn"));
 
     // Reattach the event listener to the private button
     document.getElementById("privateBtn").addEventListener("click", () => {
@@ -683,127 +786,121 @@ function restoreButtons(originalHTML) {
 
 
 
-const spriteCache = {};
 
+
+//
+// Rendering functions (all using Pixi.js)
+//
 
 function renderWorld() {
-    ctx.save(); // Save the current transformation state
-    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transformations
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
-    ctx.restore(); // Restore the saved transformation state
+    // Clear previous frame’s world drawings:
+    worldContainer.removeChildren();
 
+    // Field dimensions and screen offsets
+    const offsetX = app.renderer.width / 2;
+    const offsetY = app.renderer.height / 2;
 
-    // Define field dimensions and scaling
-    const fieldWidth = CONSTANTS.FIELD_WIDTH * CONSTANTS.SCALE;
-    const fieldHeight = CONSTANTS.FIELD_HEIGHT * CONSTANTS.SCALE;
-    const padding = 50;
-
-    const offsetX = canvas.width / 2;
-    const offsetY = canvas.height / 2;
 
     renderFieldLines(offsetX, offsetY);
     renderWalls(offsetX, offsetY);
     renderObjects(offsetX, offsetY);
 
+    // Draw debug dot if set (using red fill)
     if (debugDot) {
-        ctx.beginPath();
-        ctx.arc(debugDot.x, debugDot.y, 10, 0, Math.PI * 2);
-        ctx.fillStyle = "red";
-        ctx.fill();
-        ctx.closePath();
+        let g = new PIXI.Graphics();
+        g.beginFill(0xff0000);
+        g.drawCircle(debugDot.x, debugDot.y, 10);
+        g.endFill();
+        worldContainer.addChild(g);
     }
 
-
-    // Draw mouse position dot
+    // Draw the mouse position dot for our object
     if (mousePos) {
         for (let id in objects) {
             const object = objects[id];
             if (object.socketId == ourId) {
-                ctx.beginPath();
-                ctx.arc(mousePos.x + (canvas.width / 2) + (object.position.x * CONSTANTS.SCALE), mousePos.y + (canvas.height / 2) + (object.position.y * CONSTANTS.SCALE), 7.5, 0, Math.PI * 2); // x, y, radius, startAngle, endAngle
-                ctx.fillStyle = "#4bff3b";
-                ctx.fill();
-                ctx.closePath();
+                let g = new PIXI.Graphics();
+                g.beginFill(0x4bff3b); // equivalent to "#4bff3b"
+                const x = mousePos.x + (app.renderer.width / 2) + (object.position.x * CONSTANTS.SCALE);
+                const y = mousePos.y + (app.renderer.height / 2) + (object.position.y * CONSTANTS.SCALE);
+                g.drawCircle(x, y, 7.5);
+                g.endFill();
+                worldContainer.addChild(g);
             }
         }
     }
-
-
 }
-
 
 function renderFieldLines(offsetX, offsetY) {
+    let g = new PIXI.Graphics();
     const lineWidth = 5;
-    ctx.strokeStyle = "black";
-    ctx.lineWidth = lineWidth;
 
     // Center Line
-    ctx.beginPath();
-    ctx.moveTo(offsetX, offsetY - CONSTANTS.FIELD_HEIGHT / 2 * CONSTANTS.SCALE);
-    ctx.lineTo(offsetX, offsetY + CONSTANTS.FIELD_HEIGHT / 2 * CONSTANTS.SCALE);
-    ctx.stroke();
+    g.setStrokeStyle({ width: lineWidth, color: 0x000000 });
+    g.beginPath();
+    g.moveTo(offsetX, offsetY - (CONSTANTS.FIELD_HEIGHT / 2 * CONSTANTS.SCALE));
+    g.lineTo(offsetX, offsetY + (CONSTANTS.FIELD_HEIGHT / 2 * CONSTANTS.SCALE));
+    g.closePath();
+    g.stroke();
 
-
-
-    // Goal Area Lines
-
-
-
+    // Goal Area Lines (Right Goal)
     let rightGoal = [
-        Vec2(CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2),
-        Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2),
-        Vec2(CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2),
-        Vec2(CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2)
+        { x: CONSTANTS.FIELD_WIDTH / 2, y: -CONSTANTS.GOAL_SIZE / 2 },
+        { x: CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, y: -CONSTANTS.GOAL_SIZE / 2 },
+        { x: CONSTANTS.FIELD_WIDTH / 2 + CONSTANTS.GOAL_DEPTH, y: CONSTANTS.GOAL_SIZE / 2 },
+        { x: CONSTANTS.FIELD_WIDTH / 2, y: CONSTANTS.GOAL_SIZE / 2 }
     ];
 
+    // Left Goal
     let leftGoal = [
-        Vec2(-CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2),
-        Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, CONSTANTS.GOAL_SIZE / 2),
-        Vec2(-CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, -CONSTANTS.GOAL_SIZE / 2),
-        Vec2(-CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2)
+        { x: -CONSTANTS.FIELD_WIDTH / 2, y: CONSTANTS.GOAL_SIZE / 2 },
+        { x: -CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, y: CONSTANTS.GOAL_SIZE / 2 },
+        { x: -CONSTANTS.FIELD_WIDTH / 2 - CONSTANTS.GOAL_DEPTH, y: -CONSTANTS.GOAL_SIZE / 2 },
+        { x: -CONSTANTS.FIELD_WIDTH / 2, y: -CONSTANTS.GOAL_SIZE / 2 }
     ];
 
+    // Draw right goal line
+    g.setStrokeStyle({ width: lineWidth, color: 0x000000 });
+    g.beginPath();
+    g.moveTo(offsetX + rightGoal[0].x * CONSTANTS.SCALE, offsetY + rightGoal[0].y * CONSTANTS.SCALE);
+    g.lineTo(offsetX + rightGoal[3].x * CONSTANTS.SCALE, offsetY + rightGoal[3].y * CONSTANTS.SCALE);
+    g.closePath();
+    g.stroke();
 
+    // Draw left goal line
+    g.setStrokeStyle({ width: lineWidth, color: 0x000000 });
+    g.beginPath();
+    g.moveTo(offsetX + leftGoal[0].x * CONSTANTS.SCALE, offsetY + leftGoal[0].y * CONSTANTS.SCALE);
+    g.lineTo(offsetX + leftGoal[3].x * CONSTANTS.SCALE, offsetY + leftGoal[3].y * CONSTANTS.SCALE);
+    g.closePath();
+    g.stroke();
 
+    // Draw the center circle
+    g.setStrokeStyle({ width: lineWidth, color: 0x000000 });
+    g.beginPath();
+    g.arc(offsetX, offsetY, 7.5 * CONSTANTS.SCALE, 0, Math.PI * 2);
+    g.closePath();
+    g.stroke();
 
-    ctx.beginPath();
-    ctx.moveTo(offsetX + rightGoal[0].x * CONSTANTS.SCALE, offsetY + rightGoal[0].y * CONSTANTS.SCALE);
-    ctx.lineTo(offsetX + rightGoal[3].x * CONSTANTS.SCALE, offsetY + rightGoal[3].y * CONSTANTS.SCALE);
-    ctx.stroke();
+    // Draw the center dot
+    g.beginFill(0x000000);
+    g.drawCircle(offsetX, offsetY, CONSTANTS.BALL_RADIUS * CONSTANTS.SCALE);
+    g.endFill();
 
-
-    ctx.beginPath();
-    ctx.moveTo(offsetX + leftGoal[0].x * CONSTANTS.SCALE, offsetY + leftGoal[0].y * CONSTANTS.SCALE);
-    ctx.lineTo(offsetX + leftGoal[3].x * CONSTANTS.SCALE, offsetY + leftGoal[3].y * CONSTANTS.SCALE);
-    ctx.stroke();
-
-
-    // Center Circle
-    ctx.beginPath();
-    ctx.arc(offsetX, offsetY, 7.5 * CONSTANTS.SCALE, 0, 2 * Math.PI);
-    ctx.stroke();
-
-    // Center Dot
-    ctx.beginPath();
-    ctx.arc(offsetX, offsetY, CONSTANTS.BALL_RADIUS * CONSTANTS.SCALE, 0, 2 * Math.PI);
-    ctx.fillStyle = "black";
-    ctx.fill();
+    // Add the graphics to the world container
+    worldContainer.addChild(g);
 }
 
-
-
 function renderWalls(offsetX, offsetY) {
-    if (!wallVertices) return;
+    if (!wallVertices || wallVertices.length < 3) return;
 
+    let g = new PIXI.Graphics();
     const lineWidth = 20;
-    const offsetAmount = (-lineWidth / 2) / (CONSTANTS.SCALE);
+    const offsetAmount = (-lineWidth / 2) / CONSTANTS.SCALE;
 
-    ctx.strokeStyle = "#004404";
-    ctx.lineWidth = lineWidth;
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    ctx.beginPath();
+    g.clear();
+    g.setStrokeStyle({ width: lineWidth, color: 0x004404 });
+    g.beginPath();
 
     let offsetVertices = [];
 
@@ -811,157 +908,176 @@ function renderWalls(offsetX, offsetY) {
         const curr = wallVertices[i];
         const next = wallVertices[(i + 1) % wallVertices.length];
 
-        // Compute edge vector
+        // Edge vector and perpendicular normal
         const edge = next.clone().sub(curr);
-        const edgeNormal = Vec2(-edge.y, edge.x).normalize(); // Perpendicular normal
+        const edgeNormal = Vec2(-edge.y, edge.x).normalize();
 
-        // Shift vertex by average of surrounding edge normals
         const prev = wallVertices[(i - 1 + wallVertices.length) % wallVertices.length];
         const prevEdge = curr.clone().sub(prev);
         const prevEdgeNormal = Vec2(-prevEdge.y, prevEdge.x).normalize();
 
+        // Average normals for smoother offset
         const avgNormal = prevEdgeNormal.add(edgeNormal).normalize();
         offsetVertices.push(curr.clone().add(avgNormal.mul(offsetAmount)));
     }
 
-    offsetVertices.forEach((vertex, i) => {
-        const nextVertex = offsetVertices[(i + 1) % offsetVertices.length];
+    // Draw wall polygon
+    g.moveTo(offsetX + offsetVertices[0].x * CONSTANTS.SCALE, offsetY + offsetVertices[0].y * CONSTANTS.SCALE);
+    for (let i = 1; i < offsetVertices.length; i++) {
+        g.lineTo(offsetX + offsetVertices[i].x * CONSTANTS.SCALE, offsetY + offsetVertices[i].y * CONSTANTS.SCALE);
+    }
+    g.lineTo(offsetX + offsetVertices[0].x * CONSTANTS.SCALE, offsetY + offsetVertices[0].y * CONSTANTS.SCALE);
+    g.closePath();
+    g.stroke();
 
-        // Convert field coordinates to screen space
-        const x1 = offsetX + vertex.x * CONSTANTS.SCALE;
-        const y1 = offsetY + vertex.y * CONSTANTS.SCALE;
-        const x2 = offsetX + nextVertex.x * CONSTANTS.SCALE;
-        const y2 = offsetY + nextVertex.y * CONSTANTS.SCALE;
 
-        if (i === 0) ctx.moveTo(x1, y1);
-        ctx.lineTo(x2, y2);
-    });
-
-    ctx.closePath();
-    ctx.stroke();
+    worldContainer.addChild(g);
 }
 
 
 function renderObjects(offsetX, offsetY) {
     for (let id in objects) {
+        // console.log('rendering', id);
         const object = objects[id];
 
-        ctx.save();
-        ctx.translate(
-            object.position.x * CONSTANTS.SCALE + offsetX,
-            object.position.y * CONSTANTS.SCALE + offsetY
-        );
-        ctx.rotate(object.angle || 0);
+        // Create a container per object to apply translation & rotation
+        let objContainer = new PIXI.Container();
+
+        objContainer.x = object.position.x * CONSTANTS.SCALE + offsetX;
+        objContainer.y = object.position.y * CONSTANTS.SCALE + offsetY;
+        objContainer.rotation = object.angle || 0;
 
         if (object.type === "circle" || object.type === "ball") {
-            renderCircle(object);
+            renderCircle(object, objContainer);
         } else if (object.type === "rectangle" || object.type === "car") {
-            renderRectangle(object);
+            renderRectangle(object, objContainer);
         }
         if (object.name == "car" && object.boosting) {
-            renderBooster(object);
+            renderBooster(object, objContainer);
         }
 
-        ctx.restore();
+        worldContainer.addChild(objContainer);
     }
 }
 
-function renderBooster(car) {
+function renderBooster(car, container) {
     const boosterLength = 50; // Length of the booster
-    const boosterWidth = 30; // Width of the booster
-
+    const boosterWidth = 30;  // Width of the booster
     const backX = 0;
     const backY = car.height * CONSTANTS.SCALE;
 
-    const boosterPoints = [
-        { x: backX - boosterWidth / 2, y: backY },
-        { x: backX + boosterWidth / 2, y: backY },
-        { x: backX, y: backY + boosterLength },
-    ];
-
-    ctx.beginPath();
-    ctx.moveTo(boosterPoints[0].x, boosterPoints[0].y);
-    ctx.lineTo(boosterPoints[1].x, boosterPoints[1].y);
-    ctx.lineTo(boosterPoints[2].x, boosterPoints[2].y);
-    ctx.closePath();
-    ctx.fillStyle = "#f5e63d"; // Color of the booster
-    ctx.fill();
+    let g = new PIXI.Graphics();
+    g.beginFill(0xf5e63d);
+    g.moveTo(backX - boosterWidth / 2, backY);
+    g.lineTo(backX + boosterWidth / 2, backY);
+    g.lineTo(backX, backY + boosterLength);
+    g.closePath();
+    g.endFill();
+    container.addChild(g);
 }
-function renderCircle(object) {
+
+function renderCircle(object, container) {
     if (object.sprite) {
-        drawSprite(object, object.radius * 2 * CONSTANTS.SCALE);
+        // console.log("drawwing", object.sprite);
+        drawSprite(object, object.radius * 2 * CONSTANTS.SCALE, object.radius * 2 * CONSTANTS.SCALE, container);
     } else {
-        ctx.beginPath();
-        ctx.arc(0, 0, object.radius * CONSTANTS.SCALE, 0, 2 * Math.PI);
-        ctx.fillStyle = object.color;
-        ctx.fill();
+        let g = new PIXI.Graphics();
+        g.beginFill(string2hex(object.color));
+        g.drawCircle(0, 0, object.radius * CONSTANTS.SCALE);
+        g.endFill();
+        container.addChild(g);
     }
 }
 
-function renderRectangle(object) {
+function renderRectangle(object, container) {
     if (object.sprite) {
-        drawSprite(object, object.width * 2 * CONSTANTS.SCALE, object.height * 2 * CONSTANTS.SCALE);
+        drawSprite(object, object.width * 2 * CONSTANTS.SCALE, object.height * 2 * CONSTANTS.SCALE, container);
     } else {
-        ctx.fillStyle = object.color;
-        ctx.fillRect(-object.width * CONSTANTS.SCALE, -object.height * CONSTANTS.SCALE, object.width * CONSTANTS.SCALE * 2, object.height * CONSTANTS.SCALE * 2);
+        let g = new PIXI.Graphics();
+        g.beginFill(string2hex(object.color));
+        g.drawRect(
+            -object.width * CONSTANTS.SCALE,
+            -object.height * CONSTANTS.SCALE,
+            object.width * CONSTANTS.SCALE * 2,
+            object.height * CONSTANTS.SCALE * 2
+        );
+        g.endFill();
+        container.addChild(g);
     }
 }
-
-function drawSprite(object, width, height = width) {
+function drawSprite(object, width, height, container) {
     if (!spriteCache[object.sprite]) {
-        const img = new Image();
-        img.src = `assets/${object.sprite}.png`;
-        spriteCache[object.sprite] = img;
+        spriteCache[object.sprite] = PIXI.Assets.get(object.sprite);
     }
-    const img = spriteCache[object.sprite];
-    if (img.complete) {
-        ctx.drawImage(img, -width / 2, -height / 2, width, height);
+
+    if (!spriteCache[object.sprite]) {
+        return console.error(`Texture for ${object.sprite} not found!`);
     }
+
+    let sprite = new PIXI.Sprite(spriteCache[object.sprite]);
+    sprite.anchor.set(0.5);
+    sprite.width = width;
+    sprite.height = height;
+    container.addChild(sprite);
 }
 
-function step() {
-    camera.applyTransform(ctx);
 
+function step(deltaTime) {
+    // camera.applyTransform();
     renderWorld();
 
-
-    let ourCar;
     for (let id in objects) {
-        const obj = objects[id];
-        if (obj.socketId == ourId) {
-            ourCar = obj;
+        let object = objects[id];
+        if (object.socketId == ourId) {
+            camera.setPosition(object.position);
+            camera.setAngle(-object.angle);
         }
     }
 
-
+    camera.applyTransform();
+    camera.render();
 }
+
 
 
 class Renderer {
     constructor() {
         this.currentServerState = {};
         this.previousServerState = {};
+        // Timestamps for server updates:
         this.lastServerUpdateTime = 0;
-
+        this.previousServerUpdateTime = 0;
+        // Default update interval (ms)
         this.updateInterval = 1000 / 60;
-
-        this.animate = this.animate.bind(this);
         this.lastFrameTime = performance.now();
-
         this.FPS = 0;
         this.lastFPSUpdate = 0;
         this.lastServerFPSUpdate = 0;
 
-        this.animate(this.lastFrameTime);
+        // Create an FPS text overlay
+        this.fpsText = new PIXI.Text("FPS: 0", {
+            fontFamily: 'Arial',
+            fontSize: 20,
+            fill: 0x000000
+        });
+
+        uiContainer.addChild(this.fpsText);
+
+        this.animate = this.animate.bind(this);
+        app.ticker.add(this.animate);
+
+        console.log("APP.TICKER STARTED");
     }
 
     receiveServerState(newServerState, serverTimestamp) {
+        // Save the current state as the previous state (shallow copy)
         this.previousServerState = { ...this.currentServerState };
 
+        // Update the current state with the new data
         for (let id in newServerState) {
             this.currentServerState[id] = {
                 ...newServerState[id],
-                interpolate: newServerState[id].interpolate !== undefined ? newServerState[id].interpolate : true // Default to true if not specified
+                interpolate: newServerState[id].interpolate !== undefined ? newServerState[id].interpolate : true
             };
         }
 
@@ -969,22 +1085,30 @@ class Renderer {
         let networkLatency = clientTime - serverTimestamp;
         let adjustedServerTime = serverTimestamp + networkLatency / 2;
 
+        // If we already have a previous timestamp, update it:
         if (this.lastServerUpdateTime) {
-            let newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
+            this.previousServerUpdateTime = this.lastServerUpdateTime;
+            const newUpdateInterval = adjustedServerTime - this.lastServerUpdateTime;
             this.updateInterval = this.smoothUpdateInterval(newUpdateInterval);
-
-            if (performance.now() - this.lastServerFPSUpdate >= 5000) {
-                console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
-                this.lastServerFPSUpdate = performance.now();
-            }
+        } else {
+            // For the very first update, initialize both timestamps to adjustedServerTime
+            this.previousServerUpdateTime = adjustedServerTime;
         }
 
+        // Set the new current update time
         this.lastServerUpdateTime = adjustedServerTime;
+
+        if (performance.now() - this.lastServerFPSUpdate >= 5000) {
+            console.log("Server FPS:", (1000 / this.updateInterval).toFixed(2));
+            this.lastServerFPSUpdate = performance.now();
+        }
     }
 
     smoothUpdateInterval(newInterval) {
         const smoothingFactor = 0.1;
-        this.smoothedInterval = this.smoothedInterval !== undefined ? (this.smoothedInterval * (1 - smoothingFactor)) + (newInterval * smoothingFactor) : newInterval;
+        this.smoothedInterval = this.smoothedInterval !== undefined
+            ? (this.smoothedInterval * (1 - smoothingFactor)) + (newInterval * smoothingFactor)
+            : newInterval;
         return this.smoothedInterval;
     }
 
@@ -994,7 +1118,7 @@ class Renderer {
         if (prevState.position && currState.position) {
             object.position = Vec2(
                 prevState.position.x + alpha * (currState.position.x - prevState.position.x),
-                prevState.position.y + alpha * (currState.position.y - prevState.position.y),
+                prevState.position.y + alpha * (currState.position.y - prevState.position.y)
             );
         }
 
@@ -1003,14 +1127,19 @@ class Renderer {
         }
     }
 
+    animate(deltaTime) {
+        const now = performance.now();
+        const dt = now - this.lastFrameTime;
+        this.lastFrameTime = now;
 
-    animate(frameTime) {
-        const deltaTime = frameTime - this.lastFrameTime;
-        this.lastFrameTime = frameTime;
+        // Calculate the time interval between the last two server updates
+        const interval = this.lastServerUpdateTime - this.previousServerUpdateTime;
+        // Compute α based on time since the previous update
+        let alpha = interval > 0 ? (now - this.previousServerUpdateTime) / interval : 1;
+        // Clamp α between 0 and 1
+        alpha = Math.max(0, Math.min(alpha, 1));
 
-        const timeSinceUpdate = performance.now() - this.lastServerUpdateTime;
-        const alpha = Math.min(timeSinceUpdate / this.updateInterval, 1);
-
+        // Interpolate each object's state
         for (let id in this.currentServerState) {
             if (!objects) continue;
             const object = objects[id];
@@ -1025,40 +1154,26 @@ class Renderer {
                     object.angle = currState.angle;
                 }
 
-                // Camera follows our car with smooth lag
-                if (object.socketId == ourId) {
-                    camera.setPosition(object.position);
-                    camera.setAngle(-object.angle);
-
-                    // const cameraLagFactor = 0.05; // Adjust to control lag effect
-                    // camera.setPosition(Vec2(
-                    //     camera.position.x + cameraLagFactor * (object.position.x - camera.position.x),
-                    //     camera.position.y + cameraLagFactor * (object.position.y - camera.position.y)
-                    // ));
-
-                }
+                // (Optional) Make the camera follow our car
+                // if (object.socketId == ourId) {
+                //     // camera logic...
+                //     camera.setPosition(object.position);
+                //     camera.setAngle(-object.angle);
+                //     camera.applyTransform();
+                // }
             }
-
         }
 
-        step(deltaTime);
+        step(dt);
 
-        if (performance.now() - this.lastFPSUpdate >= 1000) {
-            this.FPS = 1000 / deltaTime;
-            this.lastFPSUpdate = performance.now();
+        if (now - this.lastFPSUpdate >= 1000) {
+            this.FPS = 1000 / dt;
+            this.lastFPSUpdate = now;
         }
 
-        ctx.font = "20px Arial";
-        ctx.fillStyle = "black";
-        ctx.textAlign = "blue";
-        ctx.textBaseline = "top";
-
-        let topLeft = camera.screenToWorld(Vec2(10, 10));
-        let textPos = Vec2(topLeft.x * CONSTANTS.SCALE + canvas.width / 2, topLeft.y * CONSTANTS.SCALE + canvas.height / 2)
-        ctx.fillText(`FPS: ${Math.round(this.FPS)}`, textPos.x, textPos.y);
-
-        requestAnimationFrame(this.animate);
+        // Update FPS text (positioned in the top left of the UI layer)
+        this.fpsText.text = `FPS: ${Math.round(this.FPS)}`;
+        this.fpsText.x = 10;
+        this.fpsText.y = 10;
     }
-
 }
-

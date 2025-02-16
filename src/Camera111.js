@@ -28,7 +28,7 @@ export default class Camera {
 
         // Create the render texture (will update later in setPerspective).
         const renderTexture = PIXI.RenderTexture.create({ width: this.rtWidth, height: this.rtHeight });
-        
+
         // Create and add the PerspectiveMesh.
         this.mesh = app.stage.addChild(
             new PerspectiveMesh({
@@ -38,10 +38,11 @@ export default class Camera {
                 y: height / 2,
                 width: this.rtWidth,
                 height: this.rtHeight,
-                // columns: 100,
-                // rows: 100
+                // columns: 4096 * 4,
+                // rows: 4096 * 4
             })
         );
+
 
         // This will also compute our yOffset.
         this.setPerspective(degToRad(-10));
@@ -49,41 +50,38 @@ export default class Camera {
     setPerspective(tiltAngle) {
         this.tiltAngle = tiltAngle;
         const tilt = Math.abs(tiltAngle);
-        
+
         // Normally, we'd use a factor = 1/cos(tilt). However, as tilt approaches 90°,
         // this factor becomes huge. So we clamp it to a maximum value.
         let factor = 1 / Math.cos(tilt);
-        const MAX_FACTOR = 4; // Adjust this maximum based on your desired effect and limits.
-        factor = Math.min(factor, MAX_FACTOR);
-        
+
         // Compute new render texture dimensions.
         const newRTWidth = this.screenWidth * factor;
         const newRTHeight = this.screenHeight * factor;
-        
+
         // The horizontal inset so that the top edge appears narrower.
         const inwardOffset = (newRTWidth - this.screenWidth) / 2;
         // The top edge should also be moved downward.
         const downwardOffset = newRTHeight * (1 - Math.cos(tilt));
-        
+
         this.rtWidth = newRTWidth;
         this.rtHeight = newRTHeight;
-        
+
         // Create a new render texture with the computed dimensions.
-        this.mesh.texture = PIXI.RenderTexture.create({ 
-            width: newRTWidth, 
-            height: newRTHeight, 
-            resolution: 5
+        this.mesh.texture = PIXI.RenderTexture.create({
+            width: newRTWidth,
+            height: newRTHeight
         });
-        
+
         // For bottom anchoring, set the pivot to the bottom center.
         this.mesh.pivot.set(newRTWidth / 2, newRTHeight);
         // Position the mesh so its bottom edge is exactly at the screen’s bottom.
         this.mesh.x = this.screenWidth / 2;
         this.mesh.y = this.screenHeight;
-        
+
         this.width = newRTWidth;
         this.height = newRTHeight;
-        
+
         // Set up the perspective mesh’s four corners.
         // The top edge is inset horizontally by inwardOffset and moved down by downwardOffset.
         this.outPoints = [
@@ -92,18 +90,19 @@ export default class Camera {
             Vec2(newRTWidth, newRTHeight),                       // Bottom-right.
             Vec2(0, newRTHeight)                                 // Bottom-left.
         ];
-        
+
+
         this.mesh.setCorners(
             Math.round(this.outPoints[0].x), Math.round(this.outPoints[0].y),
             Math.round(this.outPoints[1].x), Math.round(this.outPoints[1].y),
             Math.round(this.outPoints[2].x), Math.round(this.outPoints[2].y),
             Math.round(this.outPoints[3].x), Math.round(this.outPoints[3].y)
         );
-        
+
         // Compute vertical offset correction for the container’s transform.
         this.yOffset = (newRTHeight - this.screenHeight) / 2;
     }
-    
+
     applyTransform() {
         const { width, height } = this.app.screen;
         // Position the container so its center is at (rtWidth/2, rtHeight/2) adjusted by yOffset.
@@ -115,7 +114,7 @@ export default class Camera {
             this.position.x * this.pixelsPerMeter,
             this.position.y * this.pixelsPerMeter
         );
-        
+
         this.container.rotation = this.angle;
         this.container.scale.set(this.scale);
 

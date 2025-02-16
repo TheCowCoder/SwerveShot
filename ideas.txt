@@ -157,14 +157,10 @@ switch to pixi
 fix wall shift to be exact matching physics wall
 
 
-Fix crazy interpolation glitch
-fix perspective mesh
-
 fix resizing window with mesh and container
 fix antialias and squiggly lines in perspective mesh
 
 
-Perspective tilt idea:
-- move top left and top right in and down
-- make the renderTexture bigger width and height based on in and down amounts
-- anchor renderTexture bottom center to screen bottom center
+TODO NOW:
+make realistic steering
+then get perspective tilt working
