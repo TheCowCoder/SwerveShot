@@ -869,8 +869,8 @@ export default class Game {
             socketId: !bot ? socket.id : bot.id,
             type: "rectangle",
             position: Vec2(0, 0),
-            width: this.CAR_WIDTH / 2,
-            height: this.CAR_HEIGHT / 2,
+            width: this.CAR_WIDTH,
+            height: this.CAR_HEIGHT,
             angle: 0,
             color: "black",
             sprite: botCarSprite ? botCarSprite : "carBlue"
@@ -977,6 +977,7 @@ export default class Game {
         ball.setBullet(true);
 
         this.ball = this.createObject({
+            name: "ball",
             type: "circle",
             position: Vec2(0, 0),
             radius: CONSTANTS.BALL_RADIUS,
@@ -998,8 +999,6 @@ export default class Game {
 
             let carAngle = player.car.body.getAngle() - Math.PI / 2;
             const forward = Vec2(Math.cos(carAngle), Math.sin(carAngle));
-
-
 
             player.desiredVelocity = Vec2(0, 0);
 
@@ -1174,7 +1173,7 @@ export default class Game {
 
             // Handle flip, boost, and drive force
             let flipped = false;
-            if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
+            if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip && false) {
                 flipped = true;
                 let initialVel = player.car.body.getLinearVelocity().clone();
 

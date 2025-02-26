@@ -316,7 +316,7 @@ body {
 }
 
 #gameCanvas {
-    background-color: #3a9f58;
+    /* background-color: #3a9f58; */
     width: 100vw;
     height: 100vh;
     display: block;

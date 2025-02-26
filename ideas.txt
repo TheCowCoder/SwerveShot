@@ -164,3 +164,18 @@ fix antialias and squiggly lines in perspective mesh
 TODO NOW:
 make realistic steering
 then get perspective tilt working
+remove renderTexture use for performance
+
+
+switch to box2d.js for 2.52 ms frametime
+
+switch to 3d camera and sprites, and plane or 3d mesh for field
+this way camera can follow player
+
+
+make 3d game with three.js and 3d physics
+- w: forward
+s: backwards
+a and d- either turn left and right or lateral movement
+mouse- either aim car angle or look around camera
+- when in air, wasd moves forward backward left right
