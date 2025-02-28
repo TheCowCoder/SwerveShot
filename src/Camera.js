@@ -2,9 +2,6 @@ import { Vec2 } from '../shared/Vec2.js';
 import * as PIXI from 'pixi.js';
 import * as PIXI3D from "pixi3d/pixi7";
 
-function degToRad(degrees) {
-    return degrees * (Math.PI / 180);
-}
 
 
 export default class Camera {
@@ -33,7 +30,7 @@ export default class Camera {
         sprite3D.texture = this.renderTexture;
         sprite3D.position.set(0, 0, 0);
         // app.stage.addChild(sprite3D);
-        
+
 
         // this.camera3D = PIXI3D.Camera.main;
 

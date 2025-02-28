@@ -1,7 +1,9 @@
 import Renderer from "./Renderer.js";
 import planck from "planck-js";
-import { Vec2 } from "../shared/Vec2.js";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
+import * as HELPERS from "../shared/HELPERS.js";
+
+let Vec2 = HELPERS.Vec2;
 
 function generateFourLetterString() {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -43,9 +45,7 @@ function circleRectIntersection(cx, cy, radius, x1, y1, x2, y2, enclosed = false
     }
 }
 
-function degToRad(deg) {
-    return deg * (Math.PI / 180);
-}
+
 
 
 
@@ -924,8 +924,8 @@ export default class Game {
         let bottomRight = Vec2(CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.FIELD_HEIGHT / 2);
         let bottomLeft = Vec2(-CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.FIELD_HEIGHT / 2);
 
-        let topLeftCorner = createCircleVertices(topLeft.add(Vec2(this.WALL_CORNER_RADIUS, this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(180), degToRad(270));
-        let topRightCorner = createCircleVertices(topRight.add(Vec2(-this.WALL_CORNER_RADIUS, this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(270), degToRad(360));
+        let topLeftCorner = createCircleVertices(topLeft.add(Vec2(this.WALL_CORNER_RADIUS, this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, HELPERS.degToRad(180), HELPERS.degToRad(270));
+        let topRightCorner = createCircleVertices(topRight.add(Vec2(-this.WALL_CORNER_RADIUS, this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, HELPERS.degToRad(270), HELPERS.degToRad(360));
 
         let rightGoal = [
             Vec2(CONSTANTS.FIELD_WIDTH / 2, -CONSTANTS.GOAL_SIZE / 2),
@@ -934,9 +934,9 @@ export default class Game {
             Vec2(CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2)
         ];
         this.rightGoalVertices = rightGoal;
-        let bottomRightCorner = createCircleVertices(bottomRight.add(Vec2(-this.WALL_CORNER_RADIUS, -this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(0), degToRad(90));
+        let bottomRightCorner = createCircleVertices(bottomRight.add(Vec2(-this.WALL_CORNER_RADIUS, -this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, HELPERS.degToRad(0), HELPERS.degToRad(90));
 
-        let bottomLeftCorner = createCircleVertices(bottomLeft.add(Vec2(this.WALL_CORNER_RADIUS, -this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, degToRad(90), degToRad(180));
+        let bottomLeftCorner = createCircleVertices(bottomLeft.add(Vec2(this.WALL_CORNER_RADIUS, -this.WALL_CORNER_RADIUS)), this.WALL_CORNER_RADIUS, this.WALL_CORNER_SEGMENTS, HELPERS.degToRad(90), HELPERS.degToRad(180));
 
         let leftGoal = [
             Vec2(-CONSTANTS.FIELD_WIDTH / 2, CONSTANTS.GOAL_SIZE / 2),
@@ -1042,33 +1042,33 @@ export default class Game {
                 const sensitivity = 0.005;
                 const canvasCenterX = player.canvasWidth / 2;
                 const rawTargetAngle = (player.inputs.mousePos.x - canvasCenterX) * sensitivity;
-            
+
                 // Smoothing variable: 0 means no smoothing, higher values mean more smoothing.
                 const smoothingFactor = 0;
                 // Ensure it's clamped between 0 and 1.
                 const clampedSmoothing = Math.min(Math.max(smoothingFactor, 0), 1);
-            
+
                 // Interpolate smoothingSpeed based on smoothingFactor:
                 // When smoothingFactor = 0, smoothingSpeed = Infinity (no smoothing, instant response).
                 // When smoothingFactor = 1, smoothingSpeed is the provided value for smooth motion.
                 const baseSmoothingSpeed = 1;
                 const smoothingSpeed = clampedSmoothing === 0 ? Infinity : baseSmoothingSpeed / clampedSmoothing;
-            
+
                 if (player.car.filteredTargetAngle === undefined) {
                     player.car.filteredTargetAngle = player.car.body.getAngle();
                 }
-            
+
                 // Adjust target angle based on smoothing.
                 if (smoothingSpeed === Infinity) {
                     player.car.filteredTargetAngle = rawTargetAngle;
                 } else {
                     player.car.filteredTargetAngle += (rawTargetAngle - player.car.filteredTargetAngle) * smoothingSpeed * frameTime;
                 }
-            
+
                 const currentAngle = player.car.body.getAngle();
                 let angleDiff = player.car.filteredTargetAngle - currentAngle;
                 angleDiff = ((angleDiff + Math.PI) % (2 * Math.PI)) - Math.PI;
-            
+
                 const deadzone = 0.001;
                 if (Math.abs(angleDiff) < deadzone) {
                     player.car.body.setAngularVelocity(0);
@@ -1077,7 +1077,7 @@ export default class Game {
                     player.car.body.setAngularVelocity(turnPower * angleDiff);
                 }
             }
-            
+
 
 
 

@@ -1,4 +1,6 @@
-import { Vec2 } from './Vec2.js';
+import * as HELPERS from "../shared/HELPERS.js";
+let Vec2 = HELPERS.Vec2;
+
 
 export const SCALE = 30;
 export const FIELD_WIDTH = 50 * 1.5;

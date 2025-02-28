@@ -7,12 +7,14 @@ import path from "path"; // Importing path module
 
 
 import pl from "planck-js"; // Importing planck-js
-import { Vec2 } from "../shared/Vec2.js";
 import Game from "./Game.js";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
 import BotManager from "./BotManager.js";
 import MatchMaker from "./MatchMaker.js";
 import { copyFileSync } from "fs";
+import * as HELPERS from "../shared/HELPERS.js";
+
+let Vec2 = HELPERS.Vec2;
 
 
 const PORT = process.env.PORT || 3000;

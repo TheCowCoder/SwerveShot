@@ -1,11 +1,14 @@
-import Camera from './Camera.js';
+import Camera3D from './Camera3D.js';
 import { io } from "socket.io-client";
 import * as PIXI from 'pixi.js';
 import "./index.css";
 import * as CONSTANTS from "../shared/CONSTANTS.js";
-import { Vec2 } from "../shared/Vec2.js";
 import * as PIXI3D from "pixi3d/pixi7";
 import Vec3 from "./Vec3.js";
+import * as HELPERS from "../shared/HELPERS.js";
+
+let Vec2 = HELPERS.Vec2;
+
 
 // Global variables
 let debugDot;
@@ -47,8 +50,6 @@ async function loadAssets() {
         console.error("Error loading assets:", error);
     }
 }
-
-
 
 
 let fieldContainer;
@@ -116,7 +117,7 @@ async function setupPixi() {
     });
 
     // Create the camera instance (ensure your Camera class works with PIXI containers)
-    camera = new Camera(CONSTANTS.SCALE, app);
+    // camera = new Camera(CONSTANTS.SCALE, app);
 
 
     // Load a sprite (e.g., a sample image)
@@ -129,11 +130,11 @@ async function setupPixi() {
 
     // Create a container for all world objects so that the camera transform can be applied
     worldContainer = new PIXI.Container();
-    camera.container.addChild(worldContainer);
+    // camera.container.addChild(worldContainer);
 
     // Create a separate container for UI overlays (like FPS text) that should not be transformed by the camera
     uiContainer = new PIXI.Container();
-    camera.container.addChild(uiContainer);
+    // camera.container.addChild(uiContainer);
 
     app.view.addEventListener('mousemove', (event) => {
         if (document.pointerLockElement === app.view && !exittingPointerLock) {
@@ -416,7 +417,7 @@ window.addEventListener('keydown', (e) => {
     if (e.key === "Escape") {
         customScale = false;
         scaleBtn.style.display = "none";
-        camera.setScale(1);
+        // camera.setScale(1);
     } else if (e.key === "a") {
         leftLateralIndicator = true;
     } else if (e.key === "d") {
@@ -447,44 +448,10 @@ document.addEventListener("wheel", (e) => {
 
 // #region UI Control
 
-function degToRad(degrees) {
-    return degrees * (Math.PI / 180);
-}
 
 let tiltSlider = document.getElementById("tiltSlider");
 
 
-function quaternionToEuler(quaternion) {
-    let qx = quaternion.x;
-    let qy = quaternion.y;
-    let qz = quaternion.z;
-    let qw = quaternion.w;
-
-    // Roll (x-axis rotation)
-    let sinr_cosp = 2 * (qw * qx + qy * qz);
-    let cosr_cosp = 1 - 2 * (qx * qx + qy * qy);
-    let roll = Math.atan2(sinr_cosp, cosr_cosp);
-
-    // Pitch (y-axis rotation)
-    let sinp = 2 * (qw * qy - qz * qx);
-    let pitch;
-    if (Math.abs(sinp) >= 1) {
-        pitch = Math.sign(sinp) * Math.PI / 2; // Use 90 degrees if out of range
-    } else {
-        pitch = Math.asin(sinp);
-    }
-
-    // Yaw (z-axis rotation)
-    let siny_cosp = 2 * (qw * qz + qx * qy);
-    let cosy_cosp = 1 - 2 * (qy * qy + qz * qz);
-    let yaw = Math.atan2(siny_cosp, cosy_cosp);
-
-    return {
-        x: roll * (180 / Math.PI),   // Convert to degrees
-        y: pitch * (180 / Math.PI),
-        z: yaw * (180 / Math.PI)
-    };
-}
 
 let cameraEuler;
 
@@ -679,7 +646,7 @@ scaleBtn.style.display = "none";
 scaleBtn.addEventListener("click", () => {
     customScale = false;
     scaleBtn.style.display = "none";
-    camera.setScale(1);
+    // camera.setScale(1);
 
 });
 
@@ -1098,9 +1065,7 @@ function drawSprite(object, width, height, container) {
 
 let camera3D;
 
-function radToDeg(radians) {
-    return radians * (180 / Math.PI);
-}
+
 
 
 function getCameraEulerAngles() {
@@ -1113,19 +1078,21 @@ function getCameraEulerAngles() {
 
     // Convert radians to degrees
     return {
-        x: radToDeg(x),
-        y: radToDeg(y),
-        z: radToDeg(z)
+        x: HELPERS.radToDeg(x),
+        y: HELPERS.radToDeg(y),
+        z: HELPERS.radToDeg(z)
     };
 }
 
 
 
 function setupField() {
-    cameraEuler = { x: -90, y: 0, z: 180 };
-    camera3D = PIXI3D.Camera.main;
-    camera3D.rotationQuaternion.setEulerAngles(cameraEuler.x, cameraEuler.y, cameraEuler.z);
-    // camera3D.position.set(0, 20, 0);
+    if (ourCar) {
+        camera3D = new Camera3D(PIXI3D.Camera.main, ourCar.sprite3D);
+    } else {
+        console.log("No ourCar in setupField");
+    }
+
 
     // let control = new PIXI3D.CameraOrbitControl(app.view)
 
@@ -1169,38 +1136,39 @@ function step(deltaTime) {
         let object = objects[id];
         if (object.sprite3D) {
             object.sprite3D.position.set(object.position.x, objectHeight, object.position.y);
-            object.sprite3D.rotationQuaternion.setEulerAngles(-90, radToDeg(-object.angle), 0);
+            object.sprite3D.rotationQuaternion.setEulerAngles(-90, HELPERS.radToDeg(-object.angle), 0);
         }
     }
 
-    if (!fieldSetup) {
+    if (!fieldSetup && ourCar) {
         setupField();
         fieldSetup = true;
     }
     if (ourCar) {
-        let cameraTiltAngle = degToRad(cameraEuler.x + 180);
-        
-        let yOffset = cameraDistance * Math.sin(cameraTiltAngle);
-        let zOffset = cameraDistance * Math.cos(cameraTiltAngle);
-        
-        let cameraDest = new Vec3(ourCar.position.x, 0, ourCar.position.y);
+        camera3D.update();
+        // let cameraTiltAngle = HELPERS.degToRad(cameraEuler.x + 180);
 
-        let carForward = new Vec3(Math.sin(ourCar.angle), 0, -Math.cos(ourCar.angle));
+        // let yOffset = cameraDistance * Math.sin(cameraTiltAngle);
+        // let zOffset = cameraDistance * Math.cos(cameraTiltAngle);
 
-        cameraDest.sub(carForward.mul(zOffset));
-        cameraDest.add(new Vec3(0, yOffset, 0));
+        // let cameraDest = new Vec3(ourCar.position.x, 0, ourCar.position.y);
+
+        // let carForward = new Vec3(Math.sin(ourCar.angle), 0, -Math.cos(ourCar.angle));
+
+        // cameraDest.sub(carForward.mul(zOffset));
+        // cameraDest.add(new Vec3(0, yOffset, 0));
 
 
-        const matrix = camera3D.worldTransform;
+        // const matrix = camera3D.worldTransform;
 
-        let downVector = new Vec3(matrix.down.x, matrix.down.y, matrix.down.z);
-        
-        cameraDest.sub(downVector.mul(cameraUpOffset));
-        
-        camera3D.position.set(cameraDest.x, cameraDest.y, cameraDest.z);
+        // let downVector = new Vec3(matrix.down.x, matrix.down.y, matrix.down.z);
 
-        cameraEuler.y = radToDeg(ourCar.angle);
-        camera3D.rotationQuaternion.setEulerAngles(cameraEuler.x, cameraEuler.y, cameraEuler.z);
+        // cameraDest.sub(downVector.mul(cameraUpOffset));
+
+        // camera3D.position.set(cameraDest.x, cameraDest.y, cameraDest.z);
+
+        // cameraEuler.y = HELPERS.radToDeg(ourCar.angle);
+        // camera3D.rotationQuaternion.setEulerAngles(cameraEuler.x, cameraEuler.y, cameraEuler.z);
     }
 }
 

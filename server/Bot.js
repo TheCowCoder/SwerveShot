@@ -1,5 +1,7 @@
 import * as CONSTANTS from "../shared/CONSTANTS.js";
-import { Vec2 } from "../shared/Vec2.js";
+import * as HELPERS from "../shared/HELPERS.js";
+
+let Vec2 = HELPERS.Vec2;
 
 export default class Bot {
     constructor(game, io, id, skillLevel) {

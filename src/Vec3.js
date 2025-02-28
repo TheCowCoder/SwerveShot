@@ -1,8 +1,16 @@
 export default class Vec3 {
     constructor(x = 0, y = 0, z = 0) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
+        if (x.x !== undefined) {
+            this.x = x.x;
+            this.y = x.y;
+            this.z = x.z
+                ;
+        } else {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+        }
+
     }
 
     add(v) {
