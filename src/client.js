@@ -266,7 +266,13 @@ socket.on("objects added", (_objects) => {
             object.sprite3D.texture = texture;
 
             object.sprite3D.position.set(0, 0, 0);
+            if (object.name == "car") {
+                console.log("CAR forward before:", new Vec3(object.sprite3D.worldTransform.forward));
+            }
             object.sprite3D.rotationQuaternion.setEulerAngles(-90, 0, 0);
+            if (object.name == "car") {
+                console.log("CAR forward AFTER:", new Vec3(object.sprite3D.worldTransform.forward));
+            }
             object.sprite3D.pixelsPerUnit = CONSTANTS.SCALE;
 
             if (object.name == "car" || object.name == "ball") {
@@ -457,10 +463,8 @@ let cameraEuler;
 
 
 tiltSlider.addEventListener("input", (e) => {
-    let newAngle = -90 - parseInt(tiltSlider.value);
-    cameraEuler.x = newAngle;
-
-    camera3D.rotationQuaternion.setEulerAngles(cameraEuler.x, cameraEuler.y, cameraEuler.z);
+ 
+    camera3D.tiltAngle = -parseInt(tiltSlider.value);
 });
 
 
