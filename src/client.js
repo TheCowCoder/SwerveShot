@@ -1118,7 +1118,7 @@ function setupField() {
     const fieldPlane = PIXI3D.Mesh3D.createPlane();
     fieldPlane.material.baseColorTexture = fieldTexture;
     fieldPlane.position.set(0, 0, 0);
-    fieldPlane.scale.set(1, 1, 2.5);
+    // fieldPlane.scale.set(1, 1, 2.5);
     // fieldPlane.pixelsPerUnit = CONSTANTS.SCALE;
     fieldPlane.scale.set(Math.round(fieldWidth / 2), 1, Math.round(fieldHeight / 2));
     // fieldPlane.rotationQuaternion.setEulerAngles(0, 0, 0);

@@ -48,19 +48,25 @@ export default class Camera3D {
         // Set camera position
         this.setPosition(cameraDest);
 
-        let eye = new PIXI3D.Point3D(cameraDest.x, cameraDest.y, cameraDest.z);
-        let target = new PIXI3D.Point3D(this.target.position.x, this.target.position.y, this.target.position.z);
-        let up = new PIXI3D.Point3D(0, 1, 0);
+        // let rot = HELPERS.radToDeg(tiltAngle);
+        // this.setRotation(new Vec3(this.rotation.x, this.rotation.y, this.rotation.z));
+        // this.camera3D.rotationQuaternion.copyFrom(this.target.rotationQuaternion);
+        // this.setRotation(new Vec3(-90, this.rotation.y, this.rotation.z));
+        // this.setRotation(new Vec3(-90 + HELPERS.radToDeg(this.tiltAngle), this.rotation.y, this.rotation.z));
 
-        let cameraMatrix = new PIXI3D.Matrix4x4();
 
-        PIXI3D.Matrix4x4.targetTo(eye, target, up, cameraMatrix);
+        // let eye = new PIXI3D.Point3D(cameraDest.x, cameraDest.y, cameraDest.z);
+        // let target = new PIXI3D.Point3D(this.target.position.x, this.target.position.y, this.target.position.z);
+        // let up = new PIXI3D.Point3D(0, 1, 0);
 
+        // let cameraMatrix = new PIXI3D.Matrix4x4();
+
+        // PIXI3D.Matrix4x4.targetTo(eye, target, up, cameraMatrix);
         // this.camera3D.transform.setFromMatrix(cameraMatrix);
-        // this.camera3D.transform.lookAt(
-        //     new PIXI3D.Point3D(cameraDest.x, cameraDest.y, cameraDest.z),
-        //     new PIXI3D.Point3D(this.target.position.x, this.target.position.y, this.target.position.z),
-        //     new PIXI3D.Point3D(0, 1, 0) // Up vector
-        // );
+        
+        this.camera3D.transform.lookAt(
+            new PIXI3D.Point3D(this.target.position.x, this.target.position.y, this.target.position.z),
+            new PIXI3D.Point3D(0, 1, 0) // Up vector
+        );
     }
 }
