@@ -1,4 +1,6 @@
 export default class Vec3 {
+    static UP = new Vec3(0, 1, 0);
+
     constructor(x = 0, y = 0, z = 0) {
         if (x.x !== undefined) {
             this.x = x.x;

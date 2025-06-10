@@ -1,6 +1,7 @@
 
 import Vec3 from "./Vec3.js";
 import * as HELPERS from "../shared/HELPERS.js";
+import * as PIXI3D from "pixi3d/pixi7";
 
 export default class Camera3D {
     constructor(camera3D, target) {
@@ -28,37 +29,38 @@ export default class Camera3D {
     setPosition(pos) {
         this.camera3D.position.set(pos.x, pos.y, pos.z);
     }
-
     update() {
-        // let cameraTiltAngle = HELPERS.degToRad(this.rotation.x + 180);
+        // Calculate tilt and offsets
         let tiltAngle = HELPERS.degToRad(this.tiltAngle + 90);
         let upOffset = this.targetDistance * Math.sin(tiltAngle);
         let backOffset = this.targetDistance * Math.cos(tiltAngle);
 
+        // Initialize camera destination
         let cameraDest = new Vec3(this.target.position.x, this.target.position.y, this.target.position.z);
 
-        // let carForward = new Vec3(Math.sin(ourCar.angle), 0, -Math.cos(ourCar.angle));
+        // Calculate target forward direction
         let targetForward = new Vec3(this.target.worldTransform.down).mul(-1);
-        // console.log(this.target.worldTransform);
 
+        // Adjust camera destination based on target's forward direction and offsets
         cameraDest.sub(targetForward.mul(backOffset));
-        // cameraDest.sub(targetForward.mul(6));
-
         cameraDest.add(new Vec3(0, upOffset, 0));
-        // cameraDest.add(new Vec3(0, 25, 0));
 
-
-        // const matrix = this.camera3D.worldTransform;
-
-        // let downVector = new Vec3(matrix.down.x, matrix.down.y, matrix.down.z);
-
-        // cameraDest.sub(downVector.mul(this.target2DYOffset));
-
+        // Set camera position
         this.setPosition(cameraDest);
 
-        // let targetAngle = HELPERS.quaternionToEuler(this.target.rotationQuaternion);
+        let eye = new PIXI3D.Point3D(cameraDest.x, cameraDest.y, cameraDest.z);
+        let target = new PIXI3D.Point3D(this.target.position.x, this.target.position.y, this.target.position.z);
+        let up = new PIXI3D.Point3D(0, 1, 0);
 
-        // this.setRotation(new Vec3(this.rotation.x, targetAngle.y, this.rotation.z));
+        let cameraMatrix = new PIXI3D.Matrix4x4();
 
+        PIXI3D.Matrix4x4.targetTo(eye, target, up, cameraMatrix);
+
+        // this.camera3D.transform.setFromMatrix(cameraMatrix);
+        // this.camera3D.transform.lookAt(
+        //     new PIXI3D.Point3D(cameraDest.x, cameraDest.y, cameraDest.z),
+        //     new PIXI3D.Point3D(this.target.position.x, this.target.position.y, this.target.position.z),
+        //     new PIXI3D.Point3D(0, 1, 0) // Up vector
+        // );
     }
 }
