@@ -15,7 +15,7 @@ export default class Camera3D {
         this.setRotation(this.rotation);
 
         this.targetDistance = 25;
-        this.target2DYOffset = 7.5;
+        this.screenYOffset = 10;
 
         this.tiltAngle = 0;
     }
@@ -30,43 +30,61 @@ export default class Camera3D {
         this.camera3D.position.set(pos.x, pos.y, pos.z);
     }
     update() {
-        // Calculate tilt and offsets
-        let tiltAngle = HELPERS.degToRad(this.tiltAngle + 90);
-        let upOffset = this.targetDistance * Math.sin(tiltAngle);
-        let backOffset = this.targetDistance * Math.cos(tiltAngle);
-
-        // Initialize camera destination
-        let cameraDest = new Vec3(this.target.position.x, this.target.position.y, this.target.position.z);
-
-        // Calculate target forward direction
-        let targetForward = new Vec3(this.target.worldTransform.down).mul(-1);
-
-        // Adjust camera destination based on target's forward direction and offsets
-        cameraDest.sub(targetForward.mul(backOffset));
-        cameraDest.add(new Vec3(0, upOffset, 0));
-
-        // Set camera position
-        this.setPosition(cameraDest);
-
-        // let rot = HELPERS.radToDeg(tiltAngle);
-        // this.setRotation(new Vec3(this.rotation.x, this.rotation.y, this.rotation.z));
-        // this.camera3D.rotationQuaternion.copyFrom(this.target.rotationQuaternion);
-        // this.setRotation(new Vec3(-90, this.rotation.y, this.rotation.z));
-        // this.setRotation(new Vec3(-90 + HELPERS.radToDeg(this.tiltAngle), this.rotation.y, this.rotation.z));
-
-
-        // let eye = new PIXI3D.Point3D(cameraDest.x, cameraDest.y, cameraDest.z);
-        // let target = new PIXI3D.Point3D(this.target.position.x, this.target.position.y, this.target.position.z);
-        // let up = new PIXI3D.Point3D(0, 1, 0);
-
-        // let cameraMatrix = new PIXI3D.Matrix4x4();
-
-        // PIXI3D.Matrix4x4.targetTo(eye, target, up, cameraMatrix);
-        // this.camera3D.transform.setFromMatrix(cameraMatrix);
-        
-        this.camera3D.transform.lookAt(
-            new PIXI3D.Point3D(this.target.position.x, this.target.position.y, this.target.position.z),
-            new PIXI3D.Point3D(0, 1, 0) // Up vector
+        // 1) Compute the full camera orientation (including tilt)
+        const angles = new Vec3(
+          this.rotation.x + this.tiltAngle,
+          -this.target.rotationEuler.y,
+          this.rotation.z
+        );
+        const rotQuat = PIXI3D.Quat.fromEuler(
+          angles.x,
+          angles.y,
+          angles.z,
+          new Float32Array(4)
+        );
+    
+        // 2) Compute the forward direction (what the camera is looking along)
+        const forward = PIXI3D.Vec3.transformQuat(
+          PIXI3D.Vec3.set(0, 0, 1, new Float32Array(3)),
+          rotQuat,
+          new Float32Array(3)
+        );
+    
+        // 3) Compute the camera’s LOCAL up-vector in world space
+        const cameraUp = PIXI3D.Vec3.transformQuat(
+          PIXI3D.Vec3.set(0, 1, 0, new Float32Array(3)),
+          rotQuat,
+          new Float32Array(3)
+        );
+    
+        // 4) Build the *pivot* point by taking the car’s world-position
+        //    and nudging it up along the camera’s up-vector
+        const carPos = PIXI3D.Vec3.set(
+          this.target.x,
+          this.target.y,
+          this.target.z,
+          new Float32Array(3)
+        );
+        const pivot = PIXI3D.Vec3.add(
+          carPos,
+          PIXI3D.Vec3.scale(cameraUp, this.screenYOffset, new Float32Array(3)),
+          new Float32Array(3)
+        );
+    
+        // 5) Position the camera `distance` units back from that pivot, along forward
+        const camPos = PIXI3D.Vec3.subtract(
+          pivot,
+          PIXI3D.Vec3.scale(forward, this.targetDistance, new Float32Array(3)),
+          new Float32Array(3)
+        );
+    
+        // 6) Apply to the actual camera
+        this.camera3D.position.set(camPos[0], camPos[1], camPos[2]);
+        this.camera3D.rotationQuaternion.set(
+          rotQuat[0],
+          rotQuat[1],
+          rotQuat[2],
+          rotQuat[3]
         );
     }
-}
+    }

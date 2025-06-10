@@ -261,6 +261,7 @@ socket.on("objects added", (_objects) => {
         if (object.sprite) {
             object.sprite3D = new PIXI3D.Sprite3D();
 
+
             const texture = PIXI.Texture.from(`/assets/${object.sprite}.png`);
 
             object.sprite3D.texture = texture;
@@ -270,6 +271,8 @@ socket.on("objects added", (_objects) => {
                 console.log("CAR forward before:", new Vec3(object.sprite3D.worldTransform.forward));
             }
             object.sprite3D.rotationQuaternion.setEulerAngles(-90, 0, 0);
+            object.sprite3D.rotationEuler = new Vec3(-90, 0, 0);
+
             if (object.name == "car") {
                 console.log("CAR forward AFTER:", new Vec3(object.sprite3D.worldTransform.forward));
             }
@@ -1097,10 +1100,6 @@ function setupField() {
         console.log("No ourCar in setupField");
     }
 
-
-    // let control = new PIXI3D.CameraOrbitControl(app.view)
-
-
     let bounds = fieldContainer.getLocalBounds();
     let fieldWidth = bounds.width;
     let fieldHeight = bounds.height;
@@ -1114,14 +1113,10 @@ function setupField() {
     fieldWidth /= CONSTANTS.SCALE;
     fieldHeight /= CONSTANTS.SCALE;
 
-
     const fieldPlane = PIXI3D.Mesh3D.createPlane();
     fieldPlane.material.baseColorTexture = fieldTexture;
     fieldPlane.position.set(0, 0, 0);
-    // fieldPlane.scale.set(1, 1, 2.5);
-    // fieldPlane.pixelsPerUnit = CONSTANTS.SCALE;
     fieldPlane.scale.set(Math.round(fieldWidth / 2), 1, Math.round(fieldHeight / 2));
-    // fieldPlane.rotationQuaternion.setEulerAngles(0, 0, 0);
     fieldPlane.material.unlit = true;
     app.stage.addChild(fieldPlane);
 }
@@ -1141,6 +1136,7 @@ function step(deltaTime) {
         if (object.sprite3D) {
             object.sprite3D.position.set(object.position.x, objectHeight, object.position.y);
             object.sprite3D.rotationQuaternion.setEulerAngles(-90, HELPERS.radToDeg(-object.angle), 0);
+            object.sprite3D.rotationEuler = new Vec3(-90, HELPERS.radToDeg(-object.angle), 0);
         }
     }
 
