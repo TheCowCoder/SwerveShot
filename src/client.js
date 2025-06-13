@@ -95,16 +95,13 @@ async function setupPixi() {
     await loadAssets();
 
 
-    const canvas = app.view; // for pointer lock etc.
-
-
     // Lock and hide the cursor on click
-    canvas.addEventListener('click', () => {
-        canvas.requestPointerLock();
+    app.view.addEventListener('click', () => {
+        app.view.requestPointerLock();
     });
 
     document.addEventListener('pointerlockchange', () => {
-        if (document.pointerLockElement === canvas) {
+        if (document.pointerLockElement === app.view) {
             console.log('Pointer lock enabled on canvas');
         } else {
             console.log('Pointer lock exited');
@@ -250,6 +247,24 @@ socket.on("mouse pos", pos => {
     if (!exittingPointerLock) mousePos = Vec2(pos);
 });
 
+
+function renderBooster(car) {
+    const boosterLength = 50; // Length of the booster
+    const boosterWidth = 30;  // Width of the booster
+    const backX = 0;
+    const backY = car.height * CONSTANTS.SCALE;
+
+    let g = new PIXI.Graphics();
+    g.beginFill(0xf5e63d);
+    g.moveTo(backX - boosterWidth / 2, backY);
+    g.lineTo(backX + boosterWidth / 2, backY);
+    g.lineTo(backX, backY + boosterLength);
+    g.closePath();
+    g.endFill();
+    
+    return g;
+}
+
 let ourCar;
 
 let objectHeight = 0.01
@@ -269,6 +284,18 @@ socket.on("objects added", (_objects) => {
             object.sprite3D.position.set(0, 0, 0);
             if (object.name == "car") {
                 console.log("CAR forward before:", new Vec3(object.sprite3D.worldTransform.forward));
+
+                // object.booster = new PIXI3D.Sprite3D();
+
+                // let texture = PIXI.Texture.from(`/assets/boost.png`);
+                // object.booster.texture = texture;
+
+                // object.booster.position.set(0, 0, 0);
+
+                // object.booster.rotationQuaternion.setEulerAngles(-90, 0, 0);
+                // object.booster.position.y = objectHeight;
+            
+                // app.stage.addChild(object.booster);
             }
             object.sprite3D.rotationQuaternion.setEulerAngles(-90, 0, 0);
             object.sprite3D.rotationEuler = new Vec3(-90, 0, 0);
@@ -278,10 +305,10 @@ socket.on("objects added", (_objects) => {
             }
             object.sprite3D.pixelsPerUnit = CONSTANTS.SCALE;
 
-            if (object.name == "car" || object.name == "ball") {
+            if (object.name == "car" || object.name == "ball" || object.name == "boost") {
                 object.sprite3D.position.y = objectHeight;
             }
-            if (object.socketId == ourId) {
+            if (object.socketId == ourId) { 
                 ourCar = object;
             }
             function applyScale() {
@@ -298,7 +325,6 @@ socket.on("objects added", (_objects) => {
                     scaleX = scaleY = diameter / Math.max(textureWidth, textureHeight);
                 }
                 object.sprite3D.scale.set(scaleX, scaleY, 1);
-
             }
 
             if (texture.baseTexture.valid) {
@@ -306,7 +332,7 @@ socket.on("objects added", (_objects) => {
             } else {
                 texture.baseTexture.once('loaded', applyScale);
             }
-
+            console.log("OBJECT ADDED", object);
             app.stage.addChild(object.sprite3D);
         }
 
@@ -327,7 +353,6 @@ socket.on("object updates", (objectUpdates, timestamp, interpolate = true) => {
             }
 
             if (key == "position" || key == "angle") {
-
                 if (!interpolationObjectUpdates[id]) {
                     interpolationObjectUpdates[id] = {};
                 }
@@ -466,7 +491,7 @@ let cameraEuler;
 
 
 tiltSlider.addEventListener("input", (e) => {
- 
+    console.log("Tilt:", tiltSlider.value);
     camera3D.tiltAngle = -parseInt(tiltSlider.value);
 });
 
@@ -1008,21 +1033,7 @@ function renderObjects(offsetX, offsetY) {
     }
 }
 
-function renderBooster(car, container) {
-    const boosterLength = 50; // Length of the booster
-    const boosterWidth = 30;  // Width of the booster
-    const backX = 0;
-    const backY = car.height * CONSTANTS.SCALE;
 
-    let g = new PIXI.Graphics();
-    g.beginFill(0xf5e63d);
-    g.moveTo(backX - boosterWidth / 2, backY);
-    g.lineTo(backX + boosterWidth / 2, backY);
-    g.lineTo(backX, backY + boosterLength);
-    g.closePath();
-    g.endFill();
-    container.addChild(g);
-}
 
 function renderCircle(object, container) {
     if (object.sprite) {
@@ -1095,7 +1106,7 @@ function getCameraEulerAngles() {
 
 function setupField() {
     if (ourCar) {
-        camera3D = new Camera3D(PIXI3D.Camera.main, ourCar.sprite3D);
+        camera3D = new Camera3D(PIXI3D.Camera.main, ourCar.sprite3D, app);
     } else {
         console.log("No ourCar in setupField");
     }
@@ -1125,18 +1136,36 @@ let fieldSetup = false;
 
 
 let cameraDistance = 25;
-let cameraUpOffset = 7.5;
 
 function step(deltaTime) {
     renderField();
+
 
     // Update all sprite3d positions to match object positions
     for (let id in objects) {
         let object = objects[id];
         if (object.sprite3D) {
+            if (object.name == "boost") {
+                let car = objects[object.carId];
+                let carAngle = car.angle - Math.PI / 2;
+                let carDir = Vec2(Math.cos(carAngle), Math.sin(carAngle));
+                let destPos = car.position.clone().sub(carDir.mul(2));
+
+                let destAngle = car.angle + Math.PI;
+
+                object.position = destPos;
+                object.angle = destAngle;
+                if (car.boosting) {
+                    object.visible = true;
+                } else {
+                    object.visible = false;
+                }
+            }
             object.sprite3D.position.set(object.position.x, objectHeight, object.position.y);
             object.sprite3D.rotationQuaternion.setEulerAngles(-90, HELPERS.radToDeg(-object.angle), 0);
             object.sprite3D.rotationEuler = new Vec3(-90, HELPERS.radToDeg(-object.angle), 0);
+
+            object.sprite3D.visible = object.visible;
         }
     }
 

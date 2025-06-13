@@ -83,7 +83,7 @@ export default class Game {
         this.BOOST_FORCE = 3 * 0.75 + 0.125;
 
         this.CAR_DAMPING = 1.75;      // Linear damping for both car and ball
-        this.BALL_DAMPING = 1.25;
+        this.BALL_DAMPING = 1.20;
 
         this.FLIP_FORCE = 75 * 0.75 * (0.75 + 0.125);
 
@@ -803,6 +803,7 @@ export default class Game {
     createObject(object, body) {
         let id = Math.random().toString(36).substr(2, 9);
         object.id = id;
+        object.visible = true;
         this.objects[id] = {
             id: id,
             object: object,
@@ -815,7 +816,7 @@ export default class Game {
 
     playerJoined(socket, bot) {
         // return;
-        console.log("PLAYER JOINED!", socket.id);
+        // console.log("PLAYER JOINED!", socket.id);
         if (!bot) {
             socket.join(this.id);
 
@@ -875,6 +876,16 @@ export default class Game {
             color: "black",
             sprite: botCarSprite ? botCarSprite : "carBlue"
         }, car);
+
+        let boostObj = this.createObject({
+            name: "boost",
+            sprite: "boost",
+            position: Vec2(0, 0),
+            width: 2,
+            height: 2,
+            angle: 0,
+            carId: carObj.id
+        });
 
 
         this.players[!bot ? socket.id : bot.id] = {
@@ -1173,7 +1184,7 @@ export default class Game {
 
             // Handle flip, boost, and drive force
             let flipped = false;
-            if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip && false) {
+            if ((player.inputs["f"] || player.inputs["mouse0"]) && player.flip) {
                 flipped = true;
                 let initialVel = player.car.body.getLinearVelocity().clone();
 
@@ -1351,6 +1362,8 @@ export default class Game {
         let objectUpdates = {};
         for (let id in this.objects) {
             const object = this.objects[id];
+            if (!object.body) continue;
+
 
             let position = object.body.getPosition().clone();
             let angle = object.body.getAngle();

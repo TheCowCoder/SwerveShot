@@ -2,11 +2,13 @@
 import Vec3 from "./Vec3.js";
 import * as HELPERS from "../shared/HELPERS.js";
 import * as PIXI3D from "pixi3d/pixi7";
+import * as CONSTANTS from "../shared/CONSTANTS.js";
 
 export default class Camera3D {
-    constructor(camera3D, target) {
+    constructor(camera3D, target, app) {
         this.camera3D = camera3D;
         this.target = target;
+        this.app = app;
 
         this.position = new Vec3(0, 25, 0);
         this.rotation = new Vec3(-90, 0, 180);
@@ -15,7 +17,7 @@ export default class Camera3D {
         this.setRotation(this.rotation);
 
         this.targetDistance = 25;
-        this.screenYOffset = 10;
+        this.screenYOffset = 0.5;
 
         this.tiltAngle = 0;
     }
@@ -65,9 +67,14 @@ export default class Camera3D {
           this.target.z,
           new Float32Array(3)
         );
+
+        let screenHeightMeters = this.app.renderer.height / CONSTANTS.SCALE;
+
+        console.log("SCREEN HEIGHT", screenHeightMeters);
+
         const pivot = PIXI3D.Vec3.add(
           carPos,
-          PIXI3D.Vec3.scale(cameraUp, this.screenYOffset, new Float32Array(3)),
+          PIXI3D.Vec3.scale(cameraUp, screenHeightMeters * (0.5 - this.screenYOffset), new Float32Array(3)),
           new Float32Array(3)
         );
     
